@@ -1,0 +1,138 @@
+========================================
+  KadryPro — Instrukcja użytkownika
+========================================
+
+URL: https://project-ow96r.vercel.app
+
+UWAGA: Przy pierwszym wejściu aplikacja
+może się ładować 30-50 sekund (serwer
+się "budzi"). Kolejne wejścia są szybkie.
+
+========================================
+1. LOGOWANIE
+========================================
+Wejdź na stronę → podaj login i hasło
+(patrz plik KONTA.txt) → kliknij "Zaloguj".
+
+========================================
+2. PULPIT (Dashboard)
+========================================
+Po zalogowaniu widoczny jest pulpit z:
+- podsumowaniem urlopów
+- przypisanymi testami do wykonania
+- ostatnimi aktualnościami
+
+========================================
+3. AKTUALNOŚCI
+========================================
+Widoczne dla wszystkich.
+Kadry/Admin mogą:
+- dodawać posty (tytuł + treść + zdjęcie)
+- edytować i usuwać posty
+
+========================================
+4. PRACOWNICY (tylko Kadry/Admin)
+========================================
+→ Lista pracowników (zakładka Aktywni)
+→ Dodaj pracownika: przycisk "Nowy pracownik"
+  - wypełnij dane osobowe, dział, stanowisko
+  - ustaw rolę: pracownik / kierownik / kadry / admin
+  - przypisz przełożonego
+→ Karta pracownika: kliknij na pracownika
+  - edycja danych
+  - zarządzanie saldem urlopowym
+  - historia testów i urlopów
+→ Zwolnienie: przycisk "Zwolnij" na karcie
+→ Zakładka "Zwolnieni": lista nieaktywnych,
+  możliwość przywrócenia (Admin)
+
+========================================
+5. KWESTIONARIUSZE (tylko Kadry/Admin)
+========================================
+→ Wyślij kwestionariusz:
+  - podaj email i imię odbiorcy
+  - wybierz szablon (pracownik / zleceniobiorca)
+  - kliknij "Wyślij" — odbiorca dostaje link
+→ Odbiorca wypełnia formularz bez logowania
+  (link publiczny)
+→ Po wypełnieniu: kliknij na kwestionariusz
+  → "Generuj PDF" — pobierz gotowy dokument
+→ Usunięcie: ikona kosza przy kwestionariuszu
+→ Przywrócenie usuniętych (Admin):
+  rozwiń sekcję "Usunięte zaproszenia"
+
+========================================
+6. TESTY (Kadry/Admin tworzą, wszyscy rozwiązują)
+========================================
+→ Utwórz test:
+  - "Nowy test" → wypełnij tytuł, kategorię
+  - dodaj pytania (jednokrotny/wielokrotny wybór)
+  - oznacz poprawne odpowiedzi
+  - ustaw próg zaliczenia (%)
+→ Przypisz test pracownikom:
+  - otwórz test → "Przypisz" → wybierz pracowników
+→ Szablony testów: przycisk "Szablony" w nagłówku
+  - zapisz gotowy test jako szablon do ponownego użycia
+→ Rozwiązanie testu (Moje testy):
+  - kliknij na test → odpowiedz na pytania → "Zakończ"
+  - wynik wyświetla się jako procent
+
+========================================
+7. URLOPY
+========================================
+→ Złóż wniosek: "Nowy wniosek"
+  - wybierz daty, rodzaj (urlop / praca zdalna)
+  - podaj powód (opcjonalnie)
+→ Status wniosku:
+  - Oczekujący → Zatwierdzony / Odrzucony
+→ Wycofanie: przycisk "Wycofaj" przy wniosku
+→ Archiwizacja (Kadry): przycisk "Archiwizuj"
+  - wybierz rok/miesiąc → usuń stare wnioski z listy
+
+→ DO ZATWIERDZENIA (Kierownicy i Kadry):
+  - lista wniosków podwładnych
+  - kliknij "Zatwierdź" lub "Odrzuć"
+
+→ Korekta dni (Kadry/Admin):
+  - wejdź w kartę pracownika
+  - sekcja "Koryguj dni urlopu"
+  - dodaj lub odejmij dni
+
+========================================
+8. STRUKTURA FIRMY
+========================================
+→ /struktura — drzewo działów i pracowników
+→ /działy — zarządzanie działami (Kadry/Admin)
+  - Import z Excel: przycisk "Import Excel"
+    (plik .xlsx, kolumna A = nazwa działu)
+→ /stanowiska — zarządzanie stanowiskami
+  - Import z Excel: tak samo jak działy
+
+========================================
+9. RODZAJE URLOPÓW (Kadry/Admin)
+========================================
+→ /urlopy/rodzaje — dodaj własne typy urlopów
+  (np. urlop okolicznościowy, opieka nad dzieckiem)
+  - ustaw kolor, limit dni, czy odejmować z salda
+→ /urlopy/kalendarze — dni wolne od pracy
+
+========================================
+10. DOKUMENTY i BAZA WIEDZY
+========================================
+→ /dokumenty — pliki do pobrania dla pracowników
+→ /wiedza — baza artykułów i procedur
+
+========================================
+11. ROLE i UPRAWNIENIA (tylko Admin)
+========================================
+→ /role — tworzenie własnych ról niestandardowych
+
+========================================
+KONTAKT / PROBLEMY TECHNICZNE
+========================================
+W przypadku problemów z aplikacją:
+- odśwież stronę (F5)
+- wyloguj się i zaloguj ponownie
+- jeśli serwer nie odpowiada — poczekaj
+  60 sekund i spróbuj ponownie
+========================================

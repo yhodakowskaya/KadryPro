@@ -1,0 +1,36 @@
+========================================
+  KadryPro — Konta testowe
+========================================
+
+URL aplikacji: https://project-ow96r.vercel.app
+API (backend): https://kadrypro.onrender.com
+
+----------------------------------------
+KONTA UŻYTKOWNIKÓW
+----------------------------------------
+
+Administrator
+  Login:    admin
+  Hasło:    Admin1234!
+  Dostęp:   pełny — wszystkie funkcje
+
+Kadry / HR (Anna Kowalska)
+  Login:    kadry
+  Hasło:    Kadry1234!
+  Dostęp:   pracownicy, kwestionariusze, testy, urlopy
+
+Kierownik (Jan Nowak)
+  Login:    kierownik
+  Hasło:    Manager1234!
+  Dostęp:   zatwierdzanie wniosków urlopowych podwładnych
+
+Pracownik (Piotr Wiśniewski)
+  Login:    pracownik
+  Hasło:    Pracownik1234!
+  Dostęp:   moje testy, moje urlopy, aktualności
+
+----------------------------------------
+UWAGA: Render (darmowy plan) zasypia po
+15 min bezczynności. Pierwsze logowanie
+może trwać 30-50 sekund.
+========================================
