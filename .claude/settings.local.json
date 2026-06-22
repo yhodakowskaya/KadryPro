@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(python --version)",
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(python --version 2>&1)",
+      "PowerShell(pip --version 2>&1)",
+      "PowerShell(Get-Command py -ErrorAction SilentlyContinue)",
+      "PowerShell($env:PATH -split ';' | Where-Object { $_ -ne '' })",
+      "PowerShell(winget install Python.Python.3.12 --silent --accept-package-agreements --accept-source-agreements 2>&1)"
+    ]
+  }
+}
