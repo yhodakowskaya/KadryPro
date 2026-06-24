@@ -77,7 +77,7 @@ export default function SzablonFormPage() {
   const handleSave = () => {
     setError('')
     if (!name.trim()) { setError('Podaj nazwę szablonu.'); return }
-    const schema = fields.map(({ id: _id, ...rest }) => rest)
+    const schema = fields.map(({ id, ...rest }) => ({ key: id, ...rest }))
     mutation.mutate({ name, type, fields_schema: schema })
   }
 

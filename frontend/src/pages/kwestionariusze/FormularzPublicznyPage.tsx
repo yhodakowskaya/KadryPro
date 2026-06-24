@@ -135,7 +135,10 @@ export default function FormularzPublicznyPage() {
     )
   }
 
-  const fields: any[] = data.fields_schema || []
+  const fields: any[] = (data.fields_schema || []).map((f: any, i: number) => ({
+    ...f,
+    key: f.key || `field_${i}`,
+  }))
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
