@@ -1,5 +1,4 @@
 import api from './client'
-import axios from 'axios'
 
 export const getTemplates = (activeOnly = false) =>
   api.get('/questionnaire/templates/', { params: activeOnly ? { active_only: 'true' } : {} }).then(r => r.data)
@@ -35,10 +34,10 @@ export const restoreInvitation = (id: number) =>
   api.post(`/questionnaire/invitations/${id}/restore/`).then(r => r.data)
 
 export const getPublicForm = (token: string) =>
-  axios.get(`/api/questionnaire/fill/${token}/`).then(r => r.data)
+  api.get(`/questionnaire/fill/${token}/`).then(r => r.data)
 
 export const submitForm = (token: string, data: any) =>
-  axios.post(`/api/questionnaire/submit/${token}/`, { data }).then(r => r.data)
+  api.post(`/questionnaire/submit/${token}/`, { data }).then(r => r.data)
 
 export const getSubmissions = () =>
   api.get('/questionnaire/submissions/').then(r => r.data)
