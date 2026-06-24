@@ -6,6 +6,13 @@ import { Spinner, ErrorMessage } from '../../components/ui'
 import { CheckCircle } from 'lucide-react'
 
 function FieldInput({ field, value, onChange }: any) {
+  const labelEl = (
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
+    </label>
+  )
+  const inputCls = 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500'
+
   if (field.type === 'section') {
     return (
       <div className="col-span-2 mt-4">
@@ -16,12 +23,10 @@ function FieldInput({ field, value, onChange }: any) {
 
   if (field.type === 'textarea') {
     return (
-      <div className={field.type === 'textarea' ? 'col-span-2' : ''}>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
-        </label>
+      <div className="col-span-2">
+        {labelEl}
         <textarea
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className={inputCls}
           rows={3}
           value={value || ''}
           onChange={e => onChange(field.key, e.target.value)}
@@ -33,11 +38,9 @@ function FieldInput({ field, value, onChange }: any) {
 
   if (field.type === 'radio' && field.options) {
     return (
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
-        </label>
-        <div className="space-y-2">
+      <div className="col-span-2">
+        {labelEl}
+        <div className="flex flex-wrap gap-x-6 gap-y-2 mt-1">
           {field.options.map((opt: string) => (
             <label key={opt} className="flex items-center gap-2 cursor-pointer">
               <input
@@ -57,14 +60,31 @@ function FieldInput({ field, value, onChange }: any) {
     )
   }
 
+  if (field.type === 'select' && field.options) {
+    return (
+      <div>
+        {labelEl}
+        <select
+          className={inputCls}
+          value={value || ''}
+          onChange={e => onChange(field.key, e.target.value)}
+          required={field.required}
+        >
+          <option value="">— wybierz —</option>
+          {field.options.map((opt: string) => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      </div>
+    )
+  }
+
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
-      </label>
+      {labelEl}
       <input
         type={field.type === 'date' ? 'date' : 'text'}
-        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className={inputCls}
         value={value || ''}
         onChange={e => onChange(field.key, e.target.value)}
         required={field.required}
