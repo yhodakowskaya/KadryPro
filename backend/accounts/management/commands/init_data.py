@@ -1,3 +1,4 @@
+import os
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from accounts.models import User, Department
@@ -15,6 +16,8 @@ class Command(BaseCommand):
 
         year = timezone.now().year
 
+        reset_pwd = os.environ.get('RESET_ADMIN_PASSWORD', '')
+
         if not User.objects.filter(username='admin').exists():
             User.objects.create_superuser(
                 username='admin', email='admin@respektpersonal.pl',
@@ -22,6 +25,11 @@ class Command(BaseCommand):
                 last_name='Systemu', role=User.ROLE_ADMIN,
             )
             self.stdout.write('[OK] admin / Admin1234!')
+        elif reset_pwd:
+            admin = User.objects.get(username='admin')
+            admin.set_password(reset_pwd)
+            admin.save()
+            self.stdout.write(f'[OK] Hasło admina zresetowane przez RESET_ADMIN_PASSWORD')
 
         hr_user, created = User.objects.get_or_create(username='kadry', defaults={
             'email': 'kadry@respektpersonal.pl', 'first_name': 'Anna',
