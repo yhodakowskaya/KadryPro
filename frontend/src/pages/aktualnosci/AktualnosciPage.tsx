@@ -158,7 +158,6 @@ function PostCard({ post, isHR, currentUser, onEdit, onDelete }: {
   onEdit: (post: any) => void
   onDelete: (id: number) => void
 }) {
-  const qc = useQueryClient()
   const [likes, setLikes] = useState<{ count: number; liked: boolean }>({
     count: post.likes_count ?? 0,
     liked: post.liked_by_me ?? false,
