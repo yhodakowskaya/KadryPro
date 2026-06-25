@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/authStore'
 import { login } from '../../api/auth'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
@@ -109,6 +109,12 @@ export default function LoginPage() {
                 {error}
               </div>
             )}
+
+            <div className="text-right -mt-1">
+              <Link to="/zapomnialem-hasla" className="text-xs text-slate-400 hover:text-slate-600">
+                Nie pamiętasz hasła?
+              </Link>
+            </div>
 
             <button
               type="submit"

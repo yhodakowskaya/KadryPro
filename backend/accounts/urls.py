@@ -17,4 +17,7 @@ urlpatterns = [
     path('custom-roles/', views.CustomRoleListCreateView.as_view(), name='custom-role-list'),
     path('custom-roles/<int:pk>/', views.CustomRoleDetailView.as_view(), name='custom-role-detail'),
     path('trigger-notifications/', views.TriggerNotificationsView.as_view(), name='trigger-notifications'),
+    path('auth/password-reset/', views.PasswordResetRequestView.as_view(), name='password-reset-request'),
+    path('auth/password-reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    path('auth/change-password/', views.ChangeOwnPasswordView.as_view(), name='change-own-password'),
 ]

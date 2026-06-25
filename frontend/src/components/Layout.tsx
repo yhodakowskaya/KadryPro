@@ -1,13 +1,14 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuthStore, isHROrAdmin, isManagerOrAbove } from '../stores/authStore'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { getPendingApprovals } from '../api/hr'
 import { getMyAssignments } from '../api/tests'
+import { changeOwnPassword } from '../api/auth'
 import {
   LayoutDashboard, FileText, ClipboardList, Users,
   Calendar, GitBranch, Building2, LogOut, Bell,
   Briefcase, Shield, Printer, BookOpen, Tag, CalendarDays,
-  Newspaper, ChevronLeft, ChevronRight
+  Newspaper, ChevronLeft, ChevronRight, Key, Eye, EyeOff
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -21,6 +22,20 @@ export default function Layout() {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(false)
+  const [pwdModal, setPwdModal] = useState(false)
+  const [oldPwd, setOldPwd] = useState('')
+  const [newPwd, setNewPwd] = useState('')
+  const [showPwd, setShowPwd] = useState(false)
+  const [pwdError, setPwdError] = useState('')
+  const [pwdOk, setPwdOk] = useState(false)
+
+  const changePwdMut = useMutation({
+    mutationFn: () => changeOwnPassword(oldPwd, newPwd),
+    onSuccess: () => { setPwdOk(true); setOldPwd(''); setNewPwd('') },
+    onError: (err: any) => setPwdError(err.response?.data?.detail || 'Błąd zmiany hasła.'),
+  })
+
+  const openPwdModal = () => { setPwdModal(true); setPwdError(''); setPwdOk(false); setOldPwd(''); setNewPwd('') }
 
   const hrAdmin = isHROrAdmin(user)
   const managerAbove = isManagerOrAbove(user)
@@ -234,6 +249,16 @@ export default function Layout() {
                 </p>
               </div>
               <button
+                onClick={openPwdModal}
+                title="Zmień hasło"
+                className="w-7 h-7 flex items-center justify-center rounded-md transition-colors flex-shrink-0"
+                style={{ color: 'rgba(255,255,255,0.4)' }}
+                onMouseOver={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.8)')}
+                onMouseOut={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}
+              >
+                <Key size={14} />
+              </button>
+              <button
                 onClick={handleLogout}
                 title="Wyloguj"
                 className="w-7 h-7 flex items-center justify-center rounded-md transition-colors flex-shrink-0"
@@ -263,6 +288,66 @@ export default function Layout() {
       <main className="flex-1 overflow-auto">
         <Outlet />
       </main>
+
+      {/* Change password modal */}
+      {pwdModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Key size={18} className="text-green-700" /> Zmień hasło
+            </h2>
+            {pwdOk ? (
+              <div className="text-center py-4">
+                <p className="text-green-700 font-medium">Hasło zostało zmienione!</p>
+                <button onClick={() => setPwdModal(false)} className="mt-4 text-sm text-gray-500 hover:text-gray-700">Zamknij</button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Aktualne hasło</label>
+                  <div className="relative">
+                    <input
+                      type={showPwd ? 'text' : 'password'}
+                      value={oldPwd}
+                      onChange={e => setOldPwd(e.target.value)}
+                      className="w-full px-3 py-2 pr-9 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-700"
+                      placeholder="Wpisz aktualne hasło"
+                    />
+                    <button type="button" onClick={() => setShowPwd(v => !v)} tabIndex={-1}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nowe hasło</label>
+                  <input
+                    type={showPwd ? 'text' : 'password'}
+                    value={newPwd}
+                    onChange={e => setNewPwd(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-700"
+                    placeholder="Min. 6 znaków"
+                  />
+                </div>
+                {pwdError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{pwdError}</p>}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    onClick={() => { setPwdError(''); changePwdMut.mutate() }}
+                    disabled={!oldPwd || newPwd.length < 6 || changePwdMut.isPending}
+                    className="flex-1 bg-green-700 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-green-800"
+                  >
+                    {changePwdMut.isPending ? 'Zapisywanie...' : 'Zmień hasło'}
+                  </button>
+                  <button onClick={() => setPwdModal(false)}
+                    className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg text-sm font-medium hover:bg-gray-50">
+                    Anuluj
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

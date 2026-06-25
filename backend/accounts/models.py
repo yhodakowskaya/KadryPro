@@ -1,5 +1,7 @@
+import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
 
 
 class Department(models.Model):
@@ -158,3 +160,16 @@ class User(AbstractUser):
         if self.substitute_manager and self.substitute_manager.is_active:
             return self.substitute_manager
         return User.objects.filter(role__in=[self.ROLE_HR, self.ROLE_ADMIN], is_active=True).first()
+
+
+class PasswordResetToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reset_tokens')
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    used = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def is_valid(self):
+        return not self.used and (timezone.now() - self.created_at).total_seconds() < 3600

@@ -29,6 +29,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 }
 
 import LoginPage from './pages/auth/LoginPage'
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
+import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import Layout from './components/Layout'
 import Dashboard from './pages/dashboard/Dashboard'
 
@@ -98,6 +100,8 @@ export default function App() {
         <AuthInitializer>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/zapomnialem-hasla" element={<ForgotPasswordPage />} />
+            <Route path="/reset-hasla/:token" element={<ResetPasswordPage />} />
             <Route path="/formularz/:token" element={<FormularzPublicznyPage />} />
             <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
               <Route index element={<Dashboard />} />
