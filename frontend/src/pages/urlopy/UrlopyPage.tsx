@@ -3,7 +3,7 @@ import { getVacationBalance, getVacationRequests, cancelVacation, getVacationTyp
 import { useAuthStore, isHROrAdmin } from '../../stores/authStore'
 import { Link } from 'react-router-dom'
 import { PageHeader, Card, Btn, LoadingPage, StatusBadge, Modal, FormField, Select } from '../../components/ui'
-import { Plus, Calendar, Laptop, Search, Archive } from 'lucide-react'
+import { Plus, Calendar, Laptop, Search, Archive, ChevronDown, ChevronUp } from 'lucide-react'
 import { format } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { useState } from 'react'
@@ -19,6 +19,7 @@ export default function UrlopyPage() {
   const hrAdmin = isHROrAdmin(user)
   const year = new Date().getFullYear()
   const [tab, setTab] = useState<'vacation' | 'remote'>('vacation')
+  const [balanceVisible, setBalanceVisible] = useState(true)
   const [searchName, setSearchName] = useState('')
   const [filterVacationType, setFilterVacationType] = useState('')
   const [archiveModal, setArchiveModal] = useState(false)
@@ -106,7 +107,17 @@ export default function UrlopyPage() {
         }
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="mb-2">
+        <button
+          onClick={() => setBalanceVisible(v => !v)}
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"
+        >
+          {balanceVisible ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+          {balanceVisible ? 'Ukryj bilans' : 'Pokaż bilans'}
+        </button>
+      </div>
+
+      {balanceVisible && <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Card className="p-5">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-blue-100 rounded-lg"><Calendar size={20} className="text-blue-600" /></div>
@@ -152,6 +163,8 @@ export default function UrlopyPage() {
           </div>
         </Card>
       </div>
+
+      }
 
       <div className="flex gap-1 mb-4 bg-gray-100 p-1 rounded-lg w-fit">
         <button

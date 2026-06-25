@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getNewsPosts, createNewsPost, updateNewsPost, deleteNewsPost } from '../../api/news'
 import { useAuthStore, isHROrAdmin } from '../../stores/authStore'
 import { PageHeader, Card, Btn, ErrorMessage } from '../../components/ui'
-import { Plus, Pencil, Trash2, X, ImageIcon, Send } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, ImageIcon, Send, Link2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { pl } from 'date-fns/locale'
 
@@ -16,8 +16,13 @@ function PostCard({ post, isHR, onEdit, onDelete }: {
     ? post.author_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2)
     : '?'
 
+  const copyLink = () => {
+    const url = `${window.location.origin}/aktualnosci#post-${post.id}`
+    navigator.clipboard.writeText(url).then(() => alert('Link skopiowany!')).catch(() => {})
+  }
+
   return (
-    <Card className="p-6">
+    <Card className="p-6" id={`post-${post.id}`}>
       {post.image_url && (
         <div className="mb-4 -mx-6 -mt-6 rounded-t-xl overflow-hidden">
           <img src={post.image_url} alt="" className="w-full max-h-72 object-cover" />
@@ -25,16 +30,21 @@ function PostCard({ post, isHR, onEdit, onDelete }: {
       )}
       <div className="flex items-start justify-between gap-4">
         <h2 className="text-lg font-bold text-gray-900 leading-snug">{post.title}</h2>
-        {isHR && (
-          <div className="flex gap-1 flex-shrink-0">
-            <button onClick={() => onEdit(post)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded">
-              <Pencil size={15} />
-            </button>
-            <button onClick={() => onDelete(post.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded">
-              <Trash2 size={15} />
-            </button>
-          </div>
-        )}
+        <div className="flex gap-1 flex-shrink-0">
+          <button onClick={copyLink} title="Kopiuj link do posta" className="p-1.5 text-gray-400 hover:text-green-700 rounded">
+            <Link2 size={15} />
+          </button>
+          {isHR && (
+            <>
+              <button onClick={() => onEdit(post)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded">
+                <Pencil size={15} />
+              </button>
+              <button onClick={() => onDelete(post.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded">
+                <Trash2 size={15} />
+              </button>
+            </>
+          )}
+        </div>
       </div>
       <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap leading-relaxed">{post.content}</p>
       <div className="flex items-center gap-3 mt-4 pt-4 border-t border-gray-100">

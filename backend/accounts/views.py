@@ -118,14 +118,16 @@ class UserRestoreView(APIView):
 
 
 class SetPasswordView(APIView):
-    permission_classes = [IsHROrAdmin]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, pk):
-        user = generics.get_object_or_404(User, pk=pk)
+        target = generics.get_object_or_404(User, pk=pk)
+        if request.user.pk != target.pk and request.user.role != User.ROLE_ADMIN:
+            return Response({'detail': 'Brak uprawnień do zmiany hasła innego użytkownika.'}, status=403)
         serializer = SetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user.set_password(serializer.validated_data['password'])
-        user.save()
+        target.set_password(serializer.validated_data['password'])
+        target.save()
         return Response({'detail': 'Hasło zostało zmienione.'})
 
 
@@ -183,13 +185,21 @@ class PositionDetailView(generics.RetrieveUpdateDestroyAPIView):
 class CustomRoleListCreateView(generics.ListCreateAPIView):
     queryset = CustomRole.objects.all()
     serializer_class = CustomRoleSerializer
-    permission_classes = [IsAdminOnly]
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsAdminOnly()]
+        return [IsHROrAdmin()]
 
 
 class CustomRoleDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = CustomRole.objects.all()
     serializer_class = CustomRoleSerializer
-    permission_classes = [IsAdminOnly]
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [IsHROrAdmin()]
+        return [IsAdminOnly()]
 
 
 # ── Notifications ─────────────────────────────────────────────────────────────

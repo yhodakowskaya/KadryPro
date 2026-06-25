@@ -68,7 +68,7 @@ export default function KartaPracownikaPage() {
   const { data: departments } = useQuery({ queryKey: ['departments'], queryFn: getDepartments })
   const { data: usersData } = useQuery({ queryKey: ['users'], queryFn: () => getUsers({ is_active: 'true' }) })
   const { data: positionsData } = useQuery({ queryKey: ['positions'], queryFn: () => getPositions(true), enabled: hrAdmin && editMode })
-  const { data: customRolesData } = useQuery({ queryKey: ['custom-roles'], queryFn: getCustomRoles, enabled: hrAdmin && editMode })
+  const { data: customRolesData } = useQuery({ queryKey: ['custom-roles'], queryFn: getCustomRoles, enabled: hrAdmin })
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => updateUser(Number(id), data),
@@ -167,7 +167,9 @@ export default function KartaPracownikaPage() {
             {hrAdmin && !editMode && (
               <>
                 <Btn variant="secondary" onClick={startEdit}><Edit size={16} /> Edytuj</Btn>
-                <Btn variant="secondary" onClick={() => setPasswordModal(true)}><Key size={16} /> Zmień hasło</Btn>
+                {(currentUser?.role === 'admin' || currentUser?.id === employee.id) && (
+                  <Btn variant="secondary" onClick={() => setPasswordModal(true)}><Key size={16} /> Zmień hasło</Btn>
+                )}
                 {employee.is_active && (
                   <Btn variant="danger" onClick={() => {
                     if (confirm(`Zwolnić pracownika ${employee.first_name} ${employee.last_name}? Konto zostanie dezaktywowane.`))
@@ -199,6 +201,7 @@ export default function KartaPracownikaPage() {
             {!editMode ? (
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                 {[
+                  ...(hrAdmin || currentUser?.id === employee.id ? [['Login', employee.username || '—']] : []),
                   ['Email', employee.email],
                   ['Telefon', employee.phone || '—'],
                   ['Dział', employee.department_name || '—'],
