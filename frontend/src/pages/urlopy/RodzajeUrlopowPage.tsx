@@ -58,7 +58,13 @@ export default function RodzajeUrlopowPage() {
   const updateMut = useMutation({ mutationFn: ({ id, data }: any) => updateVacationType(id, data), onSuccess: () => { qc.invalidateQueries({ queryKey: ['vacation-types'] }); resetForm() } })
   const deleteMut = useMutation({ mutationFn: deleteVacationType, onSuccess: () => qc.invalidateQueries({ queryKey: ['vacation-types'] }) })
   const toggleActiveMut = useMutation({
-    mutationFn: (t: any) => updateVacationType(t.id, { ...t, is_active: !t.is_active }),
+    mutationFn: (t: any) => updateVacationType(t.id, {
+      name: t.name,
+      color: t.color,
+      default_days_per_year: t.default_days_per_year,
+      requires_balance: t.requires_balance,
+      is_active: !t.is_active,
+    }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['vacation-types'] }),
   })
   const updateAllocMut = useMutation({ mutationFn: ({ id, data }: any) => updateVacationTypeAllocation(id, data), onSuccess: () => { qc.invalidateQueries({ queryKey: ['vacation-type-allocations'] }); setEditAlloc(null) } })
@@ -196,8 +202,13 @@ export default function RodzajeUrlopowPage() {
                   {t.is_active ? <EyeOff size={14} /> : <Eye size={14} className="text-green-700" />}
                 </Btn>
                 <Btn size="sm" variant="secondary" onClick={() => openEdit(t)}><Edit size={14} /></Btn>
-                <Btn size="sm" variant="ghost" onClick={() => { if (confirm(`Usunąć "${t.name}"?`)) deleteMut.mutate(t.id) }}>
-                  <Trash2 size={14} className="text-red-400" />
+                <Btn
+                  size="sm" variant="ghost"
+                  disabled={t.allocations_count > 0}
+                  title={t.allocations_count > 0 ? `Nie można usunąć — ${t.allocations_count} przydziałów` : 'Usuń'}
+                  onClick={() => { if (confirm(`Usunąć "${t.name}"?`)) deleteMut.mutate(t.id) }}
+                >
+                  <Trash2 size={14} className={t.allocations_count > 0 ? 'text-gray-300' : 'text-red-400'} />
                 </Btn>
               </div>
             </div>
