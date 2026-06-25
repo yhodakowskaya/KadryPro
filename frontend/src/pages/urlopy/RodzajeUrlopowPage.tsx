@@ -192,24 +192,23 @@ export default function RodzajeUrlopowPage() {
                 <Btn size="sm" variant="secondary" onClick={() => openAllocTab(t.id)}>
                   <Users size={14} /> Przydziały
                 </Btn>
-                <Btn
-                  size="sm"
-                  variant={t.is_active ? 'secondary' : 'ghost'}
+                <button
+                  className={`px-2 py-1 rounded text-xs border transition-colors ${t.is_active ? 'border-gray-300 text-gray-600 hover:bg-gray-50' : 'border-transparent text-gray-400 hover:bg-gray-50'}`}
                   title={t.is_active ? 'Deaktywuj' : 'Aktywuj'}
                   onClick={() => toggleActiveMut.mutate(t)}
                   disabled={toggleActiveMut.isPending}
                 >
                   {t.is_active ? <EyeOff size={14} /> : <Eye size={14} className="text-green-700" />}
-                </Btn>
+                </button>
                 <Btn size="sm" variant="secondary" onClick={() => openEdit(t)}><Edit size={14} /></Btn>
-                <Btn
-                  size="sm" variant="ghost"
+                <button
+                  className="px-2 py-1 rounded text-xs transition-colors hover:bg-gray-50 disabled:cursor-not-allowed"
                   disabled={t.allocations_count > 0}
                   title={t.allocations_count > 0 ? `Nie można usunąć — ${t.allocations_count} przydziałów` : 'Usuń'}
                   onClick={() => { if (confirm(`Usunąć "${t.name}"?`)) deleteMut.mutate(t.id) }}
                 >
                   <Trash2 size={14} className={t.allocations_count > 0 ? 'text-gray-300' : 'text-red-400'} />
-                </Btn>
+                </button>
               </div>
             </div>
 
