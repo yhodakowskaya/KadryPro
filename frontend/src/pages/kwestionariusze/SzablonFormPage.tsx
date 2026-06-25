@@ -183,8 +183,8 @@ export default function SzablonFormPage() {
                   )
                   const selSource = f.condition ? fields.find(src => src.id === f.condition!.fieldKey) : null
                   return (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
+                    <div className="mt-3 pt-3 border-t border-gray-100 min-w-0">
+                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none flex-wrap">
                         <input
                           type="checkbox"
                           checked={!!f.condition}
@@ -203,9 +203,9 @@ export default function SzablonFormPage() {
                       </label>
                       {f.condition && selSource && (
                         <div className="flex gap-2 mt-2 flex-wrap items-center">
-                          <span className="text-xs text-gray-500">Pokaż gdy pole</span>
+                          <span className="text-xs text-gray-500 flex-shrink-0">Pokaż gdy pole</span>
                           <select
-                            className="text-xs border border-gray-300 rounded px-2 py-1"
+                            className="text-xs border border-gray-300 rounded px-2 py-1 max-w-[180px] truncate"
                             value={f.condition.fieldKey}
                             onChange={e => {
                               const src = fields.find(s => s.id === e.target.value)
@@ -216,9 +216,9 @@ export default function SzablonFormPage() {
                               <option key={src.id} value={src.id}>{src.label || '(bez etykiety)'}</option>
                             ))}
                           </select>
-                          <span className="text-xs text-gray-500">ma wartość</span>
+                          <span className="text-xs text-gray-500 flex-shrink-0">ma wartość</span>
                           <select
-                            className="text-xs border border-gray-300 rounded px-2 py-1"
+                            className="text-xs border border-gray-300 rounded px-2 py-1 max-w-[180px] truncate"
                             value={f.condition.value}
                             onChange={e => updateField(f.id, { condition: { ...f.condition!, value: e.target.value } })}
                           >
