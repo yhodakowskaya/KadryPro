@@ -50,6 +50,7 @@ import SzablonTestuFormPage from './pages/testy/SzablonTestuFormPage'
 import PracownicyPage from './pages/pracownicy/PracownicyPage'
 import NowyPracownikPage from './pages/pracownicy/NowyPracownikPage'
 import KartaPracownikaPage from './pages/pracownicy/KartaPracownikaPage'
+import ImportPracownikowPage from './pages/pracownicy/ImportPracownikowPage'
 
 import UrlopyPage from './pages/urlopy/UrlopyPage'
 import NowyWniosekPage from './pages/urlopy/NowyWniosekPage'
@@ -118,6 +119,7 @@ export default function App() {
               <Route path="moje-testy/:id" element={<RozwiazTestPage />} />
               <Route path="pracownicy" element={<PracownicyPage />} />
               <Route path="pracownicy/nowy" element={<NowyPracownikPage />} />
+              <Route path="pracownicy/import" element={<ImportPracownikowPage />} />
               <Route path="pracownicy/:id" element={<KartaPracownikaPage />} />
               <Route path="urlopy" element={<UrlopyPage />} />
               <Route path="urlopy/wniosek" element={<NowyWniosekPage />} />

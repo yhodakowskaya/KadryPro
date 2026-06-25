@@ -80,6 +80,61 @@ export const updateCustomRole = (id: number, data: any) =>
 export const deleteCustomRole = (id: number) =>
   api.delete(`/custom-roles/${id}/`)
 
+// Companies
+export const getCompanies = () =>
+  api.get('/companies/').then(r => r.data)
+
+export const createCompany = (data: any) =>
+  api.post('/companies/', data).then(r => r.data)
+
+export const updateCompany = (id: number, data: any) =>
+  api.put(`/companies/${id}/`, data).then(r => r.data)
+
+export const deleteCompany = (id: number) =>
+  api.delete(`/companies/${id}/`)
+
+// Regions
+export const getRegions = () =>
+  api.get('/regions/').then(r => r.data)
+
+export const createRegion = (data: any) =>
+  api.post('/regions/', data).then(r => r.data)
+
+export const updateRegion = (id: number, data: any) =>
+  api.put(`/regions/${id}/`, data).then(r => r.data)
+
+export const deleteRegion = (id: number) =>
+  api.delete(`/regions/${id}/`)
+
+// Contracts
+export const getContracts = (userId: number) =>
+  api.get(`/users/${userId}/contracts/`).then(r => r.data)
+
+export const createContract = (userId: number, data: any) =>
+  api.post(`/users/${userId}/contracts/`, data).then(r => r.data)
+
+export const updateContract = (userId: number, contractId: number, data: any) =>
+  api.put(`/users/${userId}/contracts/${contractId}/`, data).then(r => r.data)
+
+export const deleteContract = (userId: number, contractId: number) =>
+  api.delete(`/users/${userId}/contracts/${contractId}/`)
+
+// Employee Excel Import
+export const parseImportFile = (file: File) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  return api.post('/users/import/parse/', fd).then(r => r.data)
+}
+
+export const confirmImport = (file: File, mapping: Record<string, string>, defaultPassword: string, defaultRole: string) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('mapping', JSON.stringify(mapping))
+  fd.append('default_password', defaultPassword)
+  fd.append('default_role', defaultRole)
+  return api.post('/users/import/confirm/', fd).then(r => r.data)
+}
+
 // Notifications
 export const triggerNotifications = () =>
   api.post('/trigger-notifications/').then(r => r.data)

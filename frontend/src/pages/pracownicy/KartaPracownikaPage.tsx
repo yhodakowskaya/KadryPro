@@ -1,11 +1,11 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getUser, updateUser, deleteUser, getDepartments, getUsers, setPassword } from '../../api/users'
+import { getUser, updateUser, deleteUser, getDepartments, getUsers, setPassword, getCompanies, getRegions, getContracts, createContract, deleteContract } from '../../api/users'
 import { getPositions, getCustomRoles } from '../../api/users'
 import { getVacationBalance, updateVacationBalance, getVacationRequests, getVacationTypeAllocations, adjustVacationBalance } from '../../api/hr'
 import { useState } from 'react'
 import { PageHeader, Card, Btn, FormField, Input, Select, LoadingPage, Badge, Modal, ErrorMessage, StatusBadge } from '../../components/ui'
-import { ArrowLeft, Edit, Save, Key, Calendar, Laptop, FileText, Stethoscope, HardHat, Tag, Trash2, Plus, Minus } from 'lucide-react'
+import { ArrowLeft, Edit, Save, Key, Calendar, Laptop, FileText, Stethoscope, HardHat, Tag, Trash2, Plus, Minus, Building2, ChevronDown, ChevronUp } from 'lucide-react'
 import { format } from 'date-fns'
 import { pl } from 'date-fns/locale'
 import { useAuthStore, isHROrAdmin } from '../../stores/authStore'
@@ -45,6 +45,8 @@ export default function KartaPracownikaPage() {
   const [balanceYear, setBalanceYear] = useState(year)
   const [adjustDays, setAdjustDays] = useState('')
   const [adjustField, setAdjustField] = useState<'vacation' | 'remote'>('vacation')
+  const [contractsOpen, setContractsOpen] = useState(false)
+  const [newContractForm, setNewContractForm] = useState<any>(null)
 
   const { data: employee, isLoading } = useQuery({
     queryKey: ['user', id],
@@ -69,6 +71,13 @@ export default function KartaPracownikaPage() {
   const { data: usersData } = useQuery({ queryKey: ['users'], queryFn: () => getUsers({ is_active: 'true' }) })
   const { data: positionsData } = useQuery({ queryKey: ['positions'], queryFn: () => getPositions(true), enabled: hrAdmin && editMode })
   const { data: customRolesData } = useQuery({ queryKey: ['custom-roles'], queryFn: getCustomRoles, enabled: hrAdmin })
+  const { data: companiesData } = useQuery({ queryKey: ['companies'], queryFn: getCompanies, enabled: hrAdmin })
+  const { data: regionsData } = useQuery({ queryKey: ['regions'], queryFn: getRegions, enabled: hrAdmin })
+  const { data: contractsData, refetch: refetchContracts } = useQuery({
+    queryKey: ['contracts', id],
+    queryFn: () => getContracts(Number(id)),
+    enabled: !!id && hrAdmin,
+  })
 
   const updateMutation = useMutation({
     mutationFn: (data: any) => updateUser(Number(id), data),
@@ -107,6 +116,14 @@ export default function KartaPracownikaPage() {
       setAdjustDays('')
     },
   })
+  const addContractMutation = useMutation({
+    mutationFn: (data: any) => createContract(Number(id), data),
+    onSuccess: () => { refetchContracts(); setNewContractForm(null) },
+  })
+  const deleteContractMutation = useMutation({
+    mutationFn: (cid: number) => deleteContract(Number(id), cid),
+    onSuccess: () => refetchContracts(),
+  })
 
   if (isLoading) return <LoadingPage />
   if (!employee) return <div className="p-6 text-gray-500">Nie znaleziono pracownika.</div>
@@ -117,6 +134,9 @@ export default function KartaPracownikaPage() {
   const positionsList = positionsData?.results || positionsData || []
   const customRoles = customRolesData?.results || customRolesData || []
   const typeAllocs = typeAllocsData?.results || typeAllocsData || []
+  const companies = companiesData?.results || companiesData || []
+  const regions = regionsData?.results || regionsData || []
+  const contracts = contractsData?.results || contractsData || []
 
   const startEdit = () => {
     setEditForm({
@@ -133,6 +153,8 @@ export default function KartaPracownikaPage() {
       medical_exam_next_date: employee.medical_exam_next_date || '',
       bhp_date: employee.bhp_date || '',
       bhp_next_date: employee.bhp_next_date || '',
+      company: employee.company || '',
+      region: employee.region || '',
     })
     setEditMode(true)
   }
@@ -151,6 +173,8 @@ export default function KartaPracownikaPage() {
       bhp_date: editForm.bhp_date || null,
       bhp_next_date: editForm.bhp_next_date || null,
       termination_date: editForm.termination_date || null,
+      company: editForm.company ? Number(editForm.company) : null,
+      region: editForm.region ? Number(editForm.region) : null,
     })
   }
 
@@ -209,6 +233,8 @@ export default function KartaPracownikaPage() {
                   ['Data zatrudnienia', employee.hire_date ? format(new Date(employee.hire_date), 'dd MMMM yyyy', { locale: pl }) : '—'],
                   ['Data zwolnienia', employee.termination_date ? format(new Date(employee.termination_date), 'dd MMMM yyyy', { locale: pl }) : '—'],
                   ['Status', <Badge color={employee.is_active ? 'green' : 'gray'}>{employee.is_active ? 'Aktywny' : 'Nieaktywny'}</Badge>],
+                  ...(employee.company_name ? [['Firma', employee.company_name]] : []),
+                  ...(employee.region_name ? [['Region', employee.region_name]] : []),
                 ].map(([label, value]) => (
                   <div key={String(label)}>
                     <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{label}</p>
@@ -272,6 +298,18 @@ export default function KartaPracownikaPage() {
                     <option value="false">Nie</option>
                   </Select>
                 </FormField>
+                <FormField label="Firma">
+                  <Select value={editForm.company} onChange={set('company')}>
+                    <option value="">— Brak —</option>
+                    {companies.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </Select>
+                </FormField>
+                <FormField label="Region">
+                  <Select value={editForm.region} onChange={set('region')}>
+                    <option value="">— Brak —</option>
+                    {regions.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                  </Select>
+                </FormField>
                 {error && <div className="col-span-2"><ErrorMessage message={error} /></div>}
               </div>
             )}
@@ -322,6 +360,87 @@ export default function KartaPracownikaPage() {
               </div>
             )}
           </Card>
+
+          {/* Historia umów */}
+          {hrAdmin && (
+            <Card className="p-6">
+              <button
+                className="w-full flex items-center justify-between"
+                onClick={() => setContractsOpen(v => !v)}
+              >
+                <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <Building2 size={18} className="text-indigo-500" /> Historia umów
+                  {contracts.length > 0 && <span className="text-xs text-gray-400 font-normal">({contracts.length})</span>}
+                </h2>
+                {contractsOpen ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
+              </button>
+
+              {contractsOpen && (
+                <div className="mt-4 space-y-3">
+                  {contracts.map((c: any) => (
+                    <div key={c.id} className="flex items-start justify-between gap-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-800">{c.contract_type_display}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {c.start_date} — {c.end_date || 'bezterminowo'}
+                          {c.position && <span className="ml-2 text-gray-400">· {c.position}</span>}
+                        </p>
+                        {c.notes && <p className="text-xs text-gray-400 mt-1">{c.notes}</p>}
+                      </div>
+                      <button onClick={() => { if (confirm('Usunąć umowę?')) deleteContractMutation.mutate(c.id) }}
+                        className="text-gray-300 hover:text-red-500 flex-shrink-0 p-1">
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {newContractForm ? (
+                    <div className="border border-gray-200 rounded-lg p-4 space-y-3 bg-white">
+                      <div className="grid grid-cols-2 gap-3">
+                        <FormField label="Typ umowy">
+                          <Select value={newContractForm.contract_type}
+                            onChange={e => setNewContractForm((f: any) => ({ ...f, contract_type: e.target.value }))}>
+                            <option value="">— Wybierz —</option>
+                            {Object.entries(CONTRACT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                          </Select>
+                        </FormField>
+                        <FormField label="Stanowisko">
+                          <Input value={newContractForm.position}
+                            onChange={e => setNewContractForm((f: any) => ({ ...f, position: e.target.value }))}
+                            placeholder="Stanowisko (opcjonalnie)" />
+                        </FormField>
+                        <FormField label="Data od">
+                          <Input type="date" value={newContractForm.start_date}
+                            onChange={e => setNewContractForm((f: any) => ({ ...f, start_date: e.target.value }))} />
+                        </FormField>
+                        <FormField label="Data do">
+                          <Input type="date" value={newContractForm.end_date}
+                            onChange={e => setNewContractForm((f: any) => ({ ...f, end_date: e.target.value }))} />
+                        </FormField>
+                        <FormField label="Uwagi" className="col-span-2">
+                          <Input value={newContractForm.notes}
+                            onChange={e => setNewContractForm((f: any) => ({ ...f, notes: e.target.value }))}
+                            placeholder="Opcjonalne uwagi" />
+                        </FormField>
+                      </div>
+                      <div className="flex gap-2">
+                        <Btn size="sm" disabled={!newContractForm.contract_type || !newContractForm.start_date || addContractMutation.isPending}
+                          onClick={() => addContractMutation.mutate(newContractForm)}>
+                          Zapisz umowę
+                        </Btn>
+                        <Btn size="sm" variant="secondary" onClick={() => setNewContractForm(null)}>Anuluj</Btn>
+                      </div>
+                    </div>
+                  ) : (
+                    <Btn size="sm" variant="secondary"
+                      onClick={() => setNewContractForm({ contract_type: '', start_date: '', end_date: '', position: '', notes: '' })}>
+                      <Plus size={14} /> Dodaj umowę
+                    </Btn>
+                  )}
+                </div>
+              )}
+            </Card>
+          )}
 
           {/* Badania lekarskie */}
           <Card className="p-6">

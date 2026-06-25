@@ -1,6 +1,38 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User, Department, Position, CustomRole
+from .models import User, Department, Position, CustomRole, Company, Region, Contract
+
+
+class CompanySerializer(serializers.ModelSerializer):
+    employees_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Company
+        fields = ['id', 'name', 'address', 'employees_count']
+
+    def get_employees_count(self, obj):
+        return obj.employees.filter(is_active=True).count()
+
+
+class RegionSerializer(serializers.ModelSerializer):
+    employees_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Region
+        fields = ['id', 'name', 'address', 'employees_count']
+
+    def get_employees_count(self, obj):
+        return obj.employees.filter(is_active=True).count()
+
+
+class ContractSerializer(serializers.ModelSerializer):
+    contract_type_display = serializers.CharField(source='get_contract_type_display', read_only=True)
+
+    class Meta:
+        model = Contract
+        fields = ['id', 'employee', 'contract_type', 'contract_type_display',
+                  'start_date', 'end_date', 'position', 'notes', 'created_at']
+        read_only_fields = ['employee', 'created_at']
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
@@ -43,6 +75,8 @@ class CustomRoleSerializer(serializers.ModelSerializer):
             'can_approve_vacations', 'can_manage_balances',
             'can_cancel_approved_vacations', 'can_manage_structure',
             'can_view_all_requests',
+            'can_upload_documents', 'can_view_documents',
+            'can_post_news', 'can_manage_contracts',
         ]
 
     def get_user_count(self, obj):
@@ -54,6 +88,8 @@ class UserListSerializer(serializers.ModelSerializer):
     manager_name = serializers.SerializerMethodField()
     role_display = serializers.CharField(source='get_role_display', read_only=True)
     custom_role_name = serializers.CharField(source='custom_role.name', read_only=True)
+    company_name = serializers.CharField(source='company.name', read_only=True)
+    region_name = serializers.CharField(source='region.name', read_only=True)
 
     class Meta:
         model = User
@@ -61,6 +97,7 @@ class UserListSerializer(serializers.ModelSerializer):
             'id', 'username', 'first_name', 'last_name', 'email',
             'role', 'role_display', 'custom_role', 'custom_role_name',
             'department', 'department_name',
+            'company', 'company_name', 'region', 'region_name',
             'manager', 'manager_name', 'position', 'phone',
             'hire_date', 'is_active', 'termination_date',
             'contract_end', 'medical_exam_next_date', 'bhp_next_date',
@@ -80,6 +117,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
     custom_role_name = serializers.CharField(source='custom_role.name', read_only=True)
     contract_type_display = serializers.CharField(source='get_contract_type_display', read_only=True)
     medical_exam_type_display = serializers.CharField(source='get_medical_exam_type_display', read_only=True)
+    company_name = serializers.CharField(source='company.name', read_only=True)
+    region_name = serializers.CharField(source='region.name', read_only=True)
 
     class Meta:
         model = User
@@ -87,6 +126,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'id', 'username', 'first_name', 'last_name', 'email',
             'role', 'role_display', 'custom_role', 'custom_role_name',
             'department', 'department_name',
+            'company', 'company_name', 'region', 'region_name',
             'manager', 'manager_name', 'substitute_manager', 'substitute_manager_name',
             'position', 'phone', 'hire_date', 'is_active', 'termination_date', 'date_joined',
             'contract_type', 'contract_type_display', 'contract_start', 'contract_end',
@@ -113,6 +153,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
         fields = [
             'username', 'first_name', 'last_name', 'email', 'password',
             'role', 'custom_role', 'department', 'manager', 'substitute_manager',
+            'company', 'region',
             'position', 'phone', 'hire_date', 'is_active', 'termination_date',
             'contract_type', 'contract_start', 'contract_end',
             'medical_exam_type', 'medical_exam_next_date',
@@ -133,6 +174,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'first_name', 'last_name', 'email',
             'role', 'custom_role', 'department', 'manager', 'substitute_manager',
+            'company', 'region',
             'position', 'phone', 'hire_date', 'is_active', 'termination_date',
             'contract_type', 'contract_start', 'contract_end',
             'medical_exam_type', 'medical_exam_next_date',

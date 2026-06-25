@@ -4,6 +4,32 @@ from django.db import models
 from django.utils import timezone
 
 
+class Company(models.Model):
+    name = models.CharField(max_length=200, verbose_name='Firma')
+    address = models.TextField(blank=True, verbose_name='Adres')
+
+    class Meta:
+        verbose_name = 'Firma'
+        verbose_name_plural = 'Firmy'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class Region(models.Model):
+    name = models.CharField(max_length=200, verbose_name='Region')
+    address = models.TextField(blank=True, verbose_name='Adres')
+
+    class Meta:
+        verbose_name = 'Region'
+        verbose_name_plural = 'Regiony'
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Department(models.Model):
     name = models.CharField(max_length=200, verbose_name='Nazwa działu')
     parent = models.ForeignKey(
@@ -49,6 +75,10 @@ class CustomRole(models.Model):
     can_cancel_approved_vacations = models.BooleanField(default=False, verbose_name='Anulowanie zatwierdzonych urlopów')
     can_manage_structure = models.BooleanField(default=False, verbose_name='Zarządzanie strukturą')
     can_view_all_requests = models.BooleanField(default=False, verbose_name='Podgląd wszystkich wniosków')
+    can_upload_documents = models.BooleanField(default=False, verbose_name='Przesyłanie dokumentów')
+    can_view_documents = models.BooleanField(default=False, verbose_name='Podgląd dokumentów')
+    can_post_news = models.BooleanField(default=False, verbose_name='Publikowanie aktualności')
+    can_manage_contracts = models.BooleanField(default=False, verbose_name='Zarządzanie umowami')
 
     class Meta:
         verbose_name = 'Niestandardowa rola'
@@ -110,6 +140,14 @@ class User(AbstractUser):
     phone = models.CharField(max_length=30, blank=True, verbose_name='Telefon')
     position = models.CharField(max_length=200, blank=True, verbose_name='Stanowisko')
     hire_date = models.DateField(null=True, blank=True, verbose_name='Data zatrudnienia')
+    company = models.ForeignKey(
+        Company, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='employees', verbose_name='Firma'
+    )
+    region = models.ForeignKey(
+        Region, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='employees', verbose_name='Region'
+    )
 
     # Contract
     contract_type = models.CharField(
@@ -160,6 +198,35 @@ class User(AbstractUser):
         if self.substitute_manager and self.substitute_manager.is_active:
             return self.substitute_manager
         return User.objects.filter(role__in=[self.ROLE_HR, self.ROLE_ADMIN], is_active=True).first()
+
+
+class Contract(models.Model):
+    CONTRACT_CHOICES = [
+        ('uop_nieokreslony', 'UoP — czas nieokreślony'),
+        ('uop_okreslony', 'UoP — czas określony'),
+        ('zlecenie', 'Umowa zlecenie'),
+        ('dzielo', 'Umowa o dzieło'),
+        ('b2b', 'B2B'),
+        ('staz', 'Staż / Praktyka'),
+    ]
+
+    employee = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='contracts', verbose_name='Pracownik'
+    )
+    contract_type = models.CharField(max_length=30, choices=CONTRACT_CHOICES, verbose_name='Typ umowy')
+    start_date = models.DateField(verbose_name='Data od')
+    end_date = models.DateField(null=True, blank=True, verbose_name='Data do')
+    position = models.CharField(max_length=200, blank=True, verbose_name='Stanowisko')
+    notes = models.TextField(blank=True, verbose_name='Uwagi')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Umowa'
+        verbose_name_plural = 'Umowy'
+        ordering = ['-start_date']
+
+    def __str__(self):
+        return f'{self.employee} — {self.get_contract_type_display()} ({self.start_date})'
 
 
 class PasswordResetToken(models.Model):

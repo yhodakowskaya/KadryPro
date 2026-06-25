@@ -74,9 +74,14 @@ export default function PracownicyPage() {
         title="Pracownicy"
         subtitle={`${users.length} osób`}
         actions={
-          <Link to="/pracownicy/nowy">
-            <Btn><Plus size={16} /> Dodaj pracownika</Btn>
-          </Link>
+          <div className="flex gap-2">
+            <Link to="/pracownicy/import">
+              <Btn variant="secondary"><Plus size={16} /> Import z Excel</Btn>
+            </Link>
+            <Link to="/pracownicy/nowy">
+              <Btn><Plus size={16} /> Dodaj pracownika</Btn>
+            </Link>
+          </div>
         }
       />
 

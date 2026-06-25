@@ -9,12 +9,13 @@ from django.core.mail import send_mail
 from django.conf import settings
 from io import StringIO
 from datetime import date
-from .models import User, Department, Position, CustomRole, PasswordResetToken
+from .models import User, Department, Position, CustomRole, PasswordResetToken, Company, Region, Contract
 from .serializers import (
     CustomTokenObtainPairSerializer, UserListSerializer, UserDetailSerializer,
     UserCreateSerializer, UserUpdateSerializer, SetPasswordSerializer,
     DepartmentSerializer, DepartmentTreeSerializer,
     PositionSerializer, CustomRoleSerializer,
+    CompanySerializer, RegionSerializer, ContractSerializer,
 )
 from .permissions import IsHROrAdmin, IsAdminOnly
 
@@ -399,3 +400,180 @@ class PositionImportView(APIView):
                 skipped += 1
 
         return Response({'created': created, 'skipped': skipped})
+
+
+# ── Companies ─────────────────────────────────────────────────────────────────
+
+class CompanyListCreateView(generics.ListCreateAPIView):
+    queryset = Company.objects.all()
+    serializer_class = CompanySerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsHROrAdmin()]
+        return [IsAuthenticated()]
+
+
+class CompanyDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Company.objects.all()
+    serializer_class = CompanySerializer
+    permission_classes = [IsHROrAdmin]
+
+
+# ── Regions ───────────────────────────────────────────────────────────────────
+
+class RegionListCreateView(generics.ListCreateAPIView):
+    queryset = Region.objects.all()
+    serializer_class = RegionSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            return [IsHROrAdmin()]
+        return [IsAuthenticated()]
+
+
+class RegionDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Region.objects.all()
+    serializer_class = RegionSerializer
+    permission_classes = [IsHROrAdmin]
+
+
+# ── Contracts ─────────────────────────────────────────────────────────────────
+
+class ContractListCreateView(generics.ListCreateAPIView):
+    serializer_class = ContractSerializer
+    permission_classes = [IsHROrAdmin]
+
+    def get_queryset(self):
+        return Contract.objects.filter(employee_id=self.kwargs['user_pk'])
+
+    def perform_create(self, serializer):
+        employee = generics.get_object_or_404(User, pk=self.kwargs['user_pk'])
+        serializer.save(employee=employee)
+
+
+class ContractDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = ContractSerializer
+    permission_classes = [IsHROrAdmin]
+
+    def get_queryset(self):
+        return Contract.objects.filter(employee_id=self.kwargs['user_pk'])
+
+
+# ── Employee Excel Import ──────────────────────────────────────────────────────
+
+USER_FIELD_MAP = {
+    'first_name': 'Imię',
+    'last_name': 'Nazwisko',
+    'email': 'Email',
+    'username': 'Login',
+    'position': 'Stanowisko',
+    'phone': 'Telefon',
+    'hire_date': 'Data zatrudnienia',
+    'contract_type': 'Typ umowy',
+    'contract_start': 'Umowa od',
+    'contract_end': 'Umowa do',
+}
+
+class UserImportParseView(APIView):
+    """Step 1: upload file, return column names for mapping."""
+    permission_classes = [IsHROrAdmin]
+
+    def post(self, request):
+        import openpyxl
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'detail': 'Nie przesłano pliku.'}, status=400)
+        try:
+            wb = openpyxl.load_workbook(file)
+            ws = wb.active
+        except Exception:
+            return Response({'detail': 'Nieprawidłowy plik Excel.'}, status=400)
+        headers = [str(cell.value or '').strip() for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+        preview = []
+        for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True)):
+            if i >= 3:
+                break
+            preview.append([str(v or '') for v in row])
+        return Response({'columns': headers, 'preview': preview, 'field_options': USER_FIELD_MAP})
+
+
+class UserImportConfirmView(APIView):
+    """Step 2: receive mapping, import users."""
+    permission_classes = [IsHROrAdmin]
+
+    def post(self, request):
+        import openpyxl
+        from datetime import datetime
+        file = request.FILES.get('file')
+        mapping = request.data.get('mapping', {})  # { col_index: field_name }
+        default_password = request.data.get('default_password', 'Pracownik1234!')
+        default_role = request.data.get('default_role', 'employee')
+
+        if not file:
+            return Response({'detail': 'Nie przesłano pliku.'}, status=400)
+        try:
+            wb = openpyxl.load_workbook(file)
+            ws = wb.active
+        except Exception:
+            return Response({'detail': 'Nieprawidłowy plik Excel.'}, status=400)
+
+        created, skipped, errors = 0, 0, []
+        for row_num, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+            data = {}
+            for col_str, field in mapping.items():
+                col_idx = int(col_str)
+                val = row[col_idx] if col_idx < len(row) else None
+                if val is not None:
+                    data[field] = str(val).strip()
+
+            if not data.get('last_name'):
+                continue
+
+            # Auto-generate username if not provided
+            if not data.get('username'):
+                base = f"{(data.get('first_name', '') or '')[:1].lower()}{(data.get('last_name', '') or '').lower().replace(' ', '')}"
+                username = base
+                n = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base}{n}"
+                    n += 1
+                data['username'] = username
+
+            if User.objects.filter(username=data['username']).exists():
+                skipped += 1
+                continue
+
+            # Parse dates
+            for date_field in ('hire_date', 'contract_start', 'contract_end'):
+                if data.get(date_field):
+                    for fmt in ('%Y-%m-%d', '%d.%m.%Y', '%d/%m/%Y', '%m/%d/%Y'):
+                        try:
+                            data[date_field] = datetime.strptime(data[date_field], fmt).date()
+                            break
+                        except ValueError:
+                            pass
+                    else:
+                        data.pop(date_field, None)
+
+            try:
+                user = User(
+                    username=data.get('username', ''),
+                    first_name=data.get('first_name', ''),
+                    last_name=data.get('last_name', ''),
+                    email=data.get('email', ''),
+                    position=data.get('position', ''),
+                    phone=data.get('phone', ''),
+                    role=default_role,
+                    hire_date=data.get('hire_date'),
+                    contract_type=data.get('contract_type', ''),
+                    contract_start=data.get('contract_start'),
+                    contract_end=data.get('contract_end'),
+                )
+                user.set_password(default_password)
+                user.save()
+                created += 1
+            except Exception as e:
+                errors.append(f'Wiersz {row_num}: {e}')
+
+        return Response({'created': created, 'skipped': skipped, 'errors': errors})
