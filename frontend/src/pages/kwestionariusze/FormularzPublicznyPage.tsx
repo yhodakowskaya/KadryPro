@@ -5,9 +5,10 @@ import { useState } from 'react'
 import { Spinner, ErrorMessage } from '../../components/ui'
 import { CheckCircle } from 'lucide-react'
 
-function FieldInput({ field, value, onChange }: any) {
+function FieldInput({ field, value, onChange, num }: any) {
   const labelEl = (
     <label className="block text-sm font-medium text-gray-700 mb-1">
+      {num != null && <span className="text-gray-400 mr-1">{num}.</span>}
       {field.label}{field.required && <span className="text-red-500 ml-1">*</span>}
     </label>
   )
@@ -202,6 +203,10 @@ export default function FormularzPublicznyPage() {
   }))
   const fields = allFields.filter(f => isVisible(f, formData))
 
+  // Number only non-section fields
+  let counter = 0
+  const numbered = fields.map(f => ({ ...f, _num: f.type !== 'section' ? ++counter : null }))
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-3xl mx-auto">
@@ -218,12 +223,13 @@ export default function FormularzPublicznyPage() {
 
           <form onSubmit={handleSubmit} className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-              {fields.map((field: any) => (
+              {numbered.map((field: any) => (
                 <FieldInput
                   key={field.key}
                   field={field}
                   value={formData[field.key]}
                   onChange={handleChange}
+                  num={field._num}
                 />
               ))}
             </div>
