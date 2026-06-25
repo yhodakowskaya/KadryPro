@@ -5,7 +5,7 @@ import { getTemplate, createTemplate, updateTemplate } from '../../api/questionn
 import { PageHeader, Card, Btn, FormField, Input, Select, ErrorMessage } from '../../components/ui'
 import { ArrowLeft, Plus, Trash2, MoveUp, MoveDown, GripVertical } from 'lucide-react'
 
-type FieldType = 'text' | 'textarea' | 'date' | 'radio' | 'select' | 'section'
+type FieldType = 'text' | 'textarea' | 'date' | 'radio' | 'select' | 'checkbox' | 'section'
 
 interface Field {
   id: string
@@ -13,6 +13,7 @@ interface Field {
   label: string
   required?: boolean
   options?: string[]
+  condition?: { fieldKey: string; value: string }
 }
 
 const FIELD_TYPES: { value: FieldType; label: string }[] = [
@@ -22,6 +23,7 @@ const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'date', label: 'Data' },
   { value: 'radio', label: 'Wybór jednej opcji' },
   { value: 'select', label: 'Lista rozwijana' },
+  { value: 'checkbox', label: 'Wybór wielu opcji (checkboxy)' },
 ]
 
 const newField = (type: FieldType): Field => ({
@@ -29,7 +31,7 @@ const newField = (type: FieldType): Field => ({
   type,
   label: '',
   required: type !== 'section',
-  options: type === 'radio' || type === 'select' ? ['Opcja 1', 'Opcja 2'] : undefined,
+  options: (type === 'radio' || type === 'select' || type === 'checkbox') ? ['Opcja 1', 'Opcja 2'] : undefined,
 })
 
 export default function SzablonFormPage() {
@@ -52,7 +54,7 @@ export default function SzablonFormPage() {
     if (template) {
       setName(template.name)
       setType(template.type)
-      setFields((template.fields_schema || []).map((f: any) => ({ ...f, id: Math.random().toString(36).slice(2) })))
+      setFields((template.fields_schema || []).map((f: any) => ({ ...f, id: f.key || Math.random().toString(36).slice(2) })))
     }
   }, [template])
 
@@ -123,7 +125,7 @@ export default function SzablonFormPage() {
                   <Select
                     className="w-48"
                     value={f.type}
-                    onChange={e => updateField(f.id, { type: e.target.value as FieldType, options: (e.target.value === 'radio' || e.target.value === 'select') ? ['Opcja 1', 'Opcja 2'] : undefined })}
+                    onChange={e => updateField(f.id, { type: e.target.value as FieldType, options: (e.target.value === 'radio' || e.target.value === 'select' || e.target.value === 'checkbox') ? ['Opcja 1', 'Opcja 2'] : undefined })}
                   >
                     {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </Select>
@@ -148,7 +150,7 @@ export default function SzablonFormPage() {
                   </label>
                 )}
 
-                {(f.type === 'radio' || f.type === 'select') && f.options && (
+                {(f.type === 'radio' || f.type === 'select' || f.type === 'checkbox') && f.options && (
                   <div className="mt-3 space-y-1.5">
                     <p className="text-xs text-gray-500 font-medium">Opcje:</p>
                     {f.options.map((opt, oi) => (
@@ -172,6 +174,63 @@ export default function SzablonFormPage() {
                     </Btn>
                   </div>
                 )}
+
+                {f.type !== 'section' && (() => {
+                  const condSources = fields.filter(src =>
+                    src.id !== f.id &&
+                    (src.type === 'radio' || src.type === 'select') &&
+                    (src.options?.length ?? 0) > 0
+                  )
+                  const selSource = f.condition ? fields.find(src => src.id === f.condition!.fieldKey) : null
+                  return (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={!!f.condition}
+                          disabled={condSources.length === 0 && !f.condition}
+                          onChange={e => updateField(f.id, {
+                            condition: e.target.checked && condSources.length > 0
+                              ? { fieldKey: condSources[0].id, value: condSources[0].options![0] }
+                              : undefined
+                          })}
+                          className="w-3.5 h-3.5"
+                        />
+                        Pokaż pole warunkowo
+                        {condSources.length === 0 && !f.condition && (
+                          <span className="text-gray-400">(dodaj najpierw pole „Wybór jednej opcji" lub „Lista rozwijana")</span>
+                        )}
+                      </label>
+                      {f.condition && selSource && (
+                        <div className="flex gap-2 mt-2 flex-wrap items-center">
+                          <span className="text-xs text-gray-500">Pokaż gdy pole</span>
+                          <select
+                            className="text-xs border border-gray-300 rounded px-2 py-1"
+                            value={f.condition.fieldKey}
+                            onChange={e => {
+                              const src = fields.find(s => s.id === e.target.value)
+                              updateField(f.id, { condition: { fieldKey: e.target.value, value: src?.options?.[0] || '' } })
+                            }}
+                          >
+                            {condSources.map(src => (
+                              <option key={src.id} value={src.id}>{src.label || '(bez etykiety)'}</option>
+                            ))}
+                          </select>
+                          <span className="text-xs text-gray-500">ma wartość</span>
+                          <select
+                            className="text-xs border border-gray-300 rounded px-2 py-1"
+                            value={f.condition.value}
+                            onChange={e => updateField(f.id, { condition: { ...f.condition!, value: e.target.value } })}
+                          >
+                            {(selSource.options || []).map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
               </div>
             ))}
           </div>

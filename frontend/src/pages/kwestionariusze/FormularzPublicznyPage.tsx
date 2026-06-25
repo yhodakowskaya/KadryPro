@@ -60,6 +60,32 @@ function FieldInput({ field, value, onChange }: any) {
     )
   }
 
+  if (field.type === 'checkbox' && field.options) {
+    const checked: string[] = Array.isArray(value) ? value : []
+    const toggle = (opt: string) => {
+      const next = checked.includes(opt) ? checked.filter(v => v !== opt) : [...checked, opt]
+      onChange(field.key, next)
+    }
+    return (
+      <div className="col-span-2">
+        {labelEl}
+        <div className="flex flex-wrap gap-x-6 gap-y-2 mt-1">
+          {field.options.map((opt: string) => (
+            <label key={opt} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={checked.includes(opt)}
+                onChange={() => toggle(opt)}
+                className="w-4 h-4 text-blue-600 rounded"
+              />
+              <span className="text-sm text-gray-700">{opt}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
   if (field.type === 'select' && field.options) {
     return (
       <div>
@@ -93,6 +119,12 @@ function FieldInput({ field, value, onChange }: any) {
   )
 }
 
+function isVisible(field: any, formData: Record<string, any>) {
+  if (!field.condition) return true
+  const { fieldKey, value } = field.condition
+  return formData[fieldKey] === value
+}
+
 export default function FormularzPublicznyPage() {
   const { token } = useParams()
   const [formData, setFormData] = useState<Record<string, any>>({})
@@ -104,7 +136,7 @@ export default function FormularzPublicznyPage() {
   })
 
   const mutation = useMutation({
-    mutationFn: () => submitForm(token!, formData),
+    mutationFn: (filteredData: Record<string, any>) => submitForm(token!, filteredData),
     onSuccess: () => setSubmitted(true),
   })
 
@@ -114,7 +146,16 @@ export default function FormularzPublicznyPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    mutation.mutate()
+    const allFields: any[] = (data?.fields_schema || []).map((f: any, i: number) => ({
+      ...f,
+      key: f.key || `field_${i}`,
+    }))
+    const visibleKeys = new Set(allFields.filter(f => isVisible(f, formData)).map(f => f.key))
+    const filteredData: Record<string, any> = {}
+    for (const k of Object.keys(formData)) {
+      if (visibleKeys.has(k)) filteredData[k] = formData[k]
+    }
+    mutation.mutate(filteredData)
   }
 
   if (isLoading) {
@@ -155,10 +196,11 @@ export default function FormularzPublicznyPage() {
     )
   }
 
-  const fields: any[] = (data.fields_schema || []).map((f: any, i: number) => ({
+  const allFields: any[] = (data.fields_schema || []).map((f: any, i: number) => ({
     ...f,
     key: f.key || `field_${i}`,
   }))
+  const fields = allFields.filter(f => isVisible(f, formData))
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
