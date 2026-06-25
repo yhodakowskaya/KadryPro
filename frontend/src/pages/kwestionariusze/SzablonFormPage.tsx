@@ -205,25 +205,32 @@ export default function SzablonFormPage() {
                         <div className="flex gap-2 mt-2 flex-wrap items-center">
                           <span className="text-xs text-gray-500 flex-shrink-0">Pokaż gdy pole</span>
                           <select
-                            className="text-xs border border-gray-300 rounded px-2 py-1 max-w-[180px] truncate"
+                            className="text-xs border border-gray-300 rounded px-2 py-1 w-36"
                             value={f.condition.fieldKey}
                             onChange={e => {
                               const src = fields.find(s => s.id === e.target.value)
                               updateField(f.id, { condition: { fieldKey: e.target.value, value: src?.options?.[0] || '' } })
                             }}
                           >
-                            {condSources.map(src => (
-                              <option key={src.id} value={src.id}>{src.label || '(bez etykiety)'}</option>
-                            ))}
+                            {condSources.map(src => {
+                              const lbl = src.label || '(bez etykiety)'
+                              return (
+                                <option key={src.id} value={src.id}>
+                                  {lbl.length > 30 ? lbl.slice(0, 30) + '…' : lbl}
+                                </option>
+                              )
+                            })}
                           </select>
                           <span className="text-xs text-gray-500 flex-shrink-0">ma wartość</span>
                           <select
-                            className="text-xs border border-gray-300 rounded px-2 py-1 max-w-[180px] truncate"
+                            className="text-xs border border-gray-300 rounded px-2 py-1 w-32"
                             value={f.condition.value}
                             onChange={e => updateField(f.id, { condition: { ...f.condition!, value: e.target.value } })}
                           >
                             {(selSource.options || []).map(opt => (
-                              <option key={opt} value={opt}>{opt}</option>
+                              <option key={opt} value={opt}>
+                                {opt.length > 25 ? opt.slice(0, 25) + '…' : opt}
+                              </option>
                             ))}
                           </select>
                         </div>
