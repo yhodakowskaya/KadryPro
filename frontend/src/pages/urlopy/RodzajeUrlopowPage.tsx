@@ -7,7 +7,7 @@ import {
 } from '../../api/hr'
 import { getUsers } from '../../api/users'
 import { PageHeader, Card, Btn, FormField, Input, Select, LoadingPage, Badge } from '../../components/ui'
-import { Plus, Edit, Trash2, Users, X, Check, Search } from 'lucide-react'
+import { Plus, Edit, Trash2, Users, X, Check, Search, EyeOff, Eye } from 'lucide-react'
 
 const COLOR_OPTIONS = [
   { value: 'blue', label: 'Niebieski', cls: 'bg-blue-100 text-blue-800' },
@@ -57,6 +57,10 @@ export default function RodzajeUrlopowPage() {
   const createMut = useMutation({ mutationFn: createVacationType, onSuccess: () => { qc.invalidateQueries({ queryKey: ['vacation-types'] }); resetForm() } })
   const updateMut = useMutation({ mutationFn: ({ id, data }: any) => updateVacationType(id, data), onSuccess: () => { qc.invalidateQueries({ queryKey: ['vacation-types'] }); resetForm() } })
   const deleteMut = useMutation({ mutationFn: deleteVacationType, onSuccess: () => qc.invalidateQueries({ queryKey: ['vacation-types'] }) })
+  const toggleActiveMut = useMutation({
+    mutationFn: (t: any) => updateVacationType(t.id, { ...t, is_active: !t.is_active }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['vacation-types'] }),
+  })
   const updateAllocMut = useMutation({ mutationFn: ({ id, data }: any) => updateVacationTypeAllocation(id, data), onSuccess: () => { qc.invalidateQueries({ queryKey: ['vacation-type-allocations'] }); setEditAlloc(null) } })
   const deleteAllocMut = useMutation({ mutationFn: deleteVacationTypeAllocation, onSuccess: () => qc.invalidateQueries({ queryKey: ['vacation-type-allocations'] }) })
   const bulkMut = useMutation({
@@ -181,6 +185,15 @@ export default function RodzajeUrlopowPage() {
               <div className="flex gap-2">
                 <Btn size="sm" variant="secondary" onClick={() => openAllocTab(t.id)}>
                   <Users size={14} /> Przydziały
+                </Btn>
+                <Btn
+                  size="sm"
+                  variant={t.is_active ? 'secondary' : 'ghost'}
+                  title={t.is_active ? 'Deaktywuj' : 'Aktywuj'}
+                  onClick={() => toggleActiveMut.mutate(t)}
+                  disabled={toggleActiveMut.isPending}
+                >
+                  {t.is_active ? <EyeOff size={14} /> : <Eye size={14} className="text-green-700" />}
                 </Btn>
                 <Btn size="sm" variant="secondary" onClick={() => openEdit(t)}><Edit size={14} /></Btn>
                 <Btn size="sm" variant="ghost" onClick={() => { if (confirm(`Usunąć "${t.name}"?`)) deleteMut.mutate(t.id) }}>
