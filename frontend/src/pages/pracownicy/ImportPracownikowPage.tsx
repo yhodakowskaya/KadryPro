@@ -18,14 +18,6 @@ const USER_FIELDS: Record<string, string> = {
   contract_end: 'Umowa do',
 }
 
-const CONTRACT_TYPES: Record<string, string> = {
-  uop_nieokreslony: 'UoP — czas nieokreślony',
-  uop_okreslony: 'UoP — czas określony',
-  zlecenie: 'Umowa zlecenie',
-  dzielo: 'Umowa o dzieło',
-  b2b: 'B2B',
-  staz: 'Staż / Praktyka',
-}
 
 export default function ImportPracownikowPage() {
   const navigate = useNavigate()

@@ -417,11 +417,11 @@ export default function KartaPracownikaPage() {
                           <Input type="date" value={newContractForm.end_date}
                             onChange={e => setNewContractForm((f: any) => ({ ...f, end_date: e.target.value }))} />
                         </FormField>
-                        <FormField label="Uwagi" className="col-span-2">
+                        <div className="col-span-2"><FormField label="Uwagi">
                           <Input value={newContractForm.notes}
                             onChange={e => setNewContractForm((f: any) => ({ ...f, notes: e.target.value }))}
                             placeholder="Opcjonalne uwagi" />
-                        </FormField>
+                        </FormField></div>
                       </div>
                       <div className="flex gap-2">
                         <Btn size="sm" disabled={!newContractForm.contract_type || !newContractForm.start_date || addContractMutation.isPending}
