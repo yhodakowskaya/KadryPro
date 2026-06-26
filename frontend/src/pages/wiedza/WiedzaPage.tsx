@@ -349,7 +349,7 @@ export default function WiedzaPage() {
                   <Plus size={16} /> Dodaj zasób
                 </Btn>
               )}
-              <Btn onClick={() => { setShowFolderForm(v => !v); setShowItemForm(false) }}>
+              <Btn onClick={() => { openCreateFolder(); setShowItemForm(false) }}>
                 <Plus size={16} /> Nowy folder
               </Btn>
             </div>
