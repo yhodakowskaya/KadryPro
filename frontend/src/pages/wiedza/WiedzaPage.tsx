@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getFolders, createFolder, updateFolder, deleteFolder, getItems, createItem, deleteItem } from '../../api/knowledge'
 import { getDepartments, getUsers } from '../../api/users'
-import { PageHeader, Card, Btn, FormField, Input, Select, LoadingPage } from '../../components/ui'
+import { PageHeader, Card, Btn, FormField, Input, Select, LoadingPage, ErrorMessage } from '../../components/ui'
 import { Folder, FolderOpen, File, Link2, Plus, Trash2, ChevronRight, Home, Upload, ExternalLink, Lock, Settings, X, Users, Building2 } from 'lucide-react'
 import { useAuthStore, isHROrAdmin } from '../../stores/authStore'
 
@@ -42,6 +42,8 @@ export default function WiedzaPage() {
   const [itemForm, setItemForm] = useState({ title: '', item_type: 'link', url: '', access: 'all', description: '' })
   const [itemFile, setItemFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [itemError, setItemError] = useState('')
+  const [folderError, setFolderError] = useState('')
 
   const { data: foldersData, isLoading: loadingFolders } = useQuery({
     queryKey: ['knowledge-folders', currentFolderId],
@@ -77,7 +79,11 @@ export default function WiedzaPage() {
       qc.invalidateQueries({ queryKey: ['knowledge-folders'] })
       setShowFolderForm(false)
       setFolderForm(emptyFolderForm())
+      setFolderError('')
     },
+    onError: (err: any) => setFolderError(
+      err?.response?.data ? Object.values(err.response.data).flat().join(', ') : 'Błąd zapisu folderu.'
+    ),
   })
 
   const updateFolderMut = useMutation({
@@ -86,7 +92,11 @@ export default function WiedzaPage() {
       qc.invalidateQueries({ queryKey: ['knowledge-folders'] })
       setEditingFolder(null)
       setFolderForm(emptyFolderForm())
+      setFolderError('')
     },
+    onError: (err: any) => setFolderError(
+      err?.response?.data ? Object.values(err.response.data).flat().join(', ') : 'Błąd zapisu folderu.'
+    ),
   })
 
   const deleteFolderMut = useMutation({
@@ -101,8 +111,12 @@ export default function WiedzaPage() {
       setShowItemForm(false)
       setItemForm({ title: '', item_type: 'link', url: '', access: 'all', description: '' })
       setItemFile(null)
+      setItemError('')
       if (fileInputRef.current) fileInputRef.current.value = ''
     },
+    onError: (err: any) => setItemError(
+      err?.response?.data ? Object.values(err.response.data).flat().join(', ') : 'Błąd dodawania zasobu.'
+    ),
   })
 
   const deleteItemMut = useMutation({
@@ -273,6 +287,7 @@ export default function WiedzaPage() {
               </div>
             </div>
 
+            {folderError && <ErrorMessage message={folderError} />}
             <div className="flex gap-2">
               <Btn type="submit" size="sm" disabled={folderIsPending}>
                 <Folder size={14} /> {editingFolder ? 'Zapisz' : 'Utwórz'}
@@ -320,9 +335,11 @@ export default function WiedzaPage() {
                 />
               </FormField>
             )}
+            {itemError && <div className="col-span-2"><ErrorMessage message={itemError} /></div>}
             <div className="col-span-2 flex gap-3">
               <Btn type="submit" size="sm" disabled={createItemMut.isPending}>
-                {itemForm.item_type === 'file' ? <Upload size={14} /> : <Link2 size={14} />} Dodaj
+                {itemForm.item_type === 'file' ? <Upload size={14} /> : <Link2 size={14} />}
+                {createItemMut.isPending ? 'Dodaję...' : 'Dodaj'}
               </Btn>
               <Btn variant="secondary" size="sm" type="button" onClick={() => setShowItemForm(false)}>Anuluj</Btn>
             </div>

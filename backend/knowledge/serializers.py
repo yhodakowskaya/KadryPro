@@ -12,6 +12,7 @@ class KnowledgeItemSerializer(serializers.ModelSerializer):
     file_extension = serializers.CharField(read_only=True)
     file_url = serializers.SerializerMethodField()
     access_display = serializers.CharField(source='get_access_display', read_only=True)
+    title = serializers.CharField(required=False, allow_blank=True, max_length=300)
 
     class Meta:
         model = KnowledgeItem
@@ -21,6 +22,17 @@ class KnowledgeItemSerializer(serializers.ModelSerializer):
             'access', 'access_display', 'created_by', 'created_by_name', 'created_at', 'order',
         ]
         read_only_fields = ['created_by', 'created_at']
+
+    def validate(self, data):
+        # Auto-generate title from URL or filename if empty
+        if not data.get('title'):
+            if data.get('url'):
+                data['title'] = data['url'].split('/')[-1] or data['url']
+            elif data.get('file'):
+                data['title'] = data['file'].name
+            else:
+                data['title'] = 'Zasób'
+        return data
 
     def get_created_by_name(self, obj):
         if obj.created_by:
