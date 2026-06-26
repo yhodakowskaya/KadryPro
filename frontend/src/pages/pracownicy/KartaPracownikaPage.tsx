@@ -27,6 +27,90 @@ const EXAM_LABELS: Record<string, string> = {
   kontrolne: 'Kontrolne',
 }
 
+function ExtraManagersPicker({ userList, selected, onChange }: {
+  userList: any[]; selected: string[]; onChange: (v: string[]) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+
+  const toggle = (sid: string) =>
+    onChange(selected.includes(sid) ? selected.filter(x => x !== sid) : [...selected, sid])
+
+  const filtered = userList.filter(u =>
+    `${u.first_name} ${u.last_name}`.toLowerCase().includes(search.toLowerCase())
+  )
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 w-full text-left mb-1"
+      >
+        <span>Dodatkowi przełożeni</span>
+        {selected.length > 0 && (
+          <span className="text-xs bg-green-100 text-green-700 rounded-full px-2 py-0.5">{selected.length}</span>
+        )}
+        {open ? <ChevronUp size={14} className="ml-auto text-gray-400" /> : <ChevronDown size={14} className="ml-auto text-gray-400" />}
+      </button>
+
+      {selected.length > 0 && !open && (
+        <div className="flex flex-wrap gap-1 mb-1">
+          {selected.map(sid => {
+            const u = userList.find(u => String(u.id) === sid)
+            if (!u) return null
+            return (
+              <span key={sid} className="inline-flex items-center gap-1 text-xs bg-blue-50 text-blue-700 rounded-full px-2 py-0.5">
+                {u.first_name} {u.last_name}
+                <button type="button" onClick={() => toggle(sid)} className="hover:text-red-500">×</button>
+              </span>
+            )
+          })}
+        </div>
+      )}
+
+      {open && (
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <div className="p-2 border-b border-gray-100">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Szukaj pracownika..."
+              className="w-full px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-green-700"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto p-2 grid grid-cols-2 gap-0.5">
+            {filtered.map((u: any) => {
+              const sid = String(u.id)
+              const checked = selected.includes(sid)
+              return (
+                <label key={u.id} className={`flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded hover:bg-gray-50 ${checked ? 'bg-green-50' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggle(sid)}
+                    className="w-3.5 h-3.5 flex-shrink-0"
+                  />
+                  <span className="truncate">{u.first_name} {u.last_name}</span>
+                </label>
+              )
+            })}
+            {filtered.length === 0 && <p className="col-span-2 text-xs text-gray-400 py-2 text-center">Brak wyników</p>}
+          </div>
+          {selected.length > 0 && (
+            <div className="border-t border-gray-100 px-3 py-1.5 text-xs text-gray-500">
+              Wybrano: {selected.length}
+              <button type="button" onClick={() => onChange([])} className="ml-2 text-red-400 hover:text-red-600">Wyczyść</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function KartaPracownikaPage() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -289,30 +373,11 @@ export default function KartaPracownikaPage() {
                   </Select>
                 </FormField>
                 <div className="col-span-2">
-                  <p className="text-sm font-medium text-gray-700 mb-1">Dodatkowi przełożeni</p>
-                  <div className="border border-gray-200 rounded-lg p-2 max-h-36 overflow-y-auto grid grid-cols-2 gap-1">
-                    {userList.filter((u: any) => u.id !== Number(id)).map((u: any) => {
-                      const sid = String(u.id)
-                      const checked = (editForm.extra_managers || []).includes(sid)
-                      return (
-                        <label key={u.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 px-1 py-0.5 rounded">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => {
-                              const list: string[] = editForm.extra_managers || []
-                              setEditForm((f: any) => ({
-                                ...f,
-                                extra_managers: checked ? list.filter((x: string) => x !== sid) : [...list, sid],
-                              }))
-                            }}
-                            className="w-3.5 h-3.5"
-                          />
-                          {u.first_name} {u.last_name}
-                        </label>
-                      )
-                    })}
-                  </div>
+                  <ExtraManagersPicker
+                    userList={userList.filter((u: any) => u.id !== Number(id))}
+                    selected={editForm.extra_managers || []}
+                    onChange={(vals: string[]) => setEditForm((f: any) => ({ ...f, extra_managers: vals }))}
+                  />
                 </div>
                 <FormField label="Data zatrudnienia">
                   <Input type="date" value={editForm.hire_date} onChange={set('hire_date')} />
