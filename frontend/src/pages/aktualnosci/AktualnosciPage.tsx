@@ -72,11 +72,12 @@ function CommentsSection({ postId, commentsCount, currentUser }: {
   const [text, setText] = useState('')
   const qc = useQueryClient()
 
-  const { data: comments = [] } = useQuery({
+  const { data: commentsRaw } = useQuery({
     queryKey: ['comments', postId],
     queryFn: () => getComments(postId),
     enabled: open,
   })
+  const comments: any[] = Array.isArray(commentsRaw) ? commentsRaw : (commentsRaw?.results ?? [])
 
   const addMut = useMutation({
     mutationFn: (t: string) => addComment(postId, t),
