@@ -355,8 +355,8 @@ export default function KartaPracownikaPage() {
                   ['Data zatrudnienia', employee.hire_date ? format(new Date(employee.hire_date), 'dd MMMM yyyy', { locale: pl }) : '—'],
                   ['Data zwolnienia', employee.termination_date ? format(new Date(employee.termination_date), 'dd MMMM yyyy', { locale: pl }) : '—'],
                   ['Status', <Badge color={employee.is_active ? 'green' : 'gray'}>{employee.is_active ? 'Aktywny' : 'Nieaktywny'}</Badge>],
-                  ...(employee.company_name ? [['Firma', employee.company_name]] : []),
-                  ...(employee.region_name ? [['Region', employee.region_name]] : []),
+                  ['Firma', employee.company_name || '—'],
+                  ['Region', employee.region_name || '—'],
                 ].map(([label, value]) => (
                   <div key={String(label)}>
                     <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{label}</p>
