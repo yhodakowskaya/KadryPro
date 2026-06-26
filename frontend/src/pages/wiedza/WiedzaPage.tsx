@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getAllFolders, createFolder, updateFolder, deleteFolder, getItems, createItem, updateItem, deleteItem } from '../../api/knowledge'
 import { getDepartments, getUsers } from '../../api/users'
@@ -58,12 +58,42 @@ function getPreviewType(item: any): 'youtube' | 'pdf' | 'image' | 'none' {
 
 // ── PreviewModal ──────────────────────────────────────────────────────────────
 
+function useBlobUrl(remoteUrl: string | null): { blobUrl: string | null; loading: boolean; error: boolean } {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    if (!remoteUrl) return
+    let objectUrl: string | null = null
+    setLoading(true)
+    setError(false)
+    setBlobUrl(null)
+    const token = localStorage.getItem('access_token')
+    fetch(remoteUrl, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      .then(r => { if (!r.ok) throw new Error('fetch failed'); return r.blob() })
+      .then(blob => { objectUrl = URL.createObjectURL(blob); setBlobUrl(objectUrl); setLoading(false) })
+      .catch(() => { setError(true); setLoading(false) })
+    return () => { if (objectUrl) URL.revokeObjectURL(objectUrl) }
+  }, [remoteUrl])
+
+  return { blobUrl, loading, error }
+}
+
 function PreviewModal({ item, onClose }: { item: any; onClose: () => void }) {
   const type = getPreviewType(item)
   const youtubeId = type === 'youtube' ? getYouTubeId(item.url) : null
   const mediaUrl = item.file_url || item.url
 
-  const iconMap = { youtube: <Play size={16} className="text-red-400 flex-shrink-0" />, pdf: <FileText size={16} className="text-slate-300 flex-shrink-0" />, image: <Image size={16} className="text-blue-300 flex-shrink-0" />, none: null }
+  const needsBlob = type === 'pdf' || type === 'image'
+  const { blobUrl, loading, error } = useBlobUrl(needsBlob ? mediaUrl : null)
+
+  const iconMap = {
+    youtube: <Play size={16} className="text-red-400 flex-shrink-0" />,
+    pdf: <FileText size={16} className="text-slate-300 flex-shrink-0" />,
+    image: <Image size={16} className="text-blue-300 flex-shrink-0" />,
+    none: null,
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.88)' }}
@@ -81,7 +111,9 @@ function PreviewModal({ item, onClose }: { item: any; onClose: () => void }) {
           <button onClick={onClose} className="text-slate-300 hover:text-white p-1 rounded"><X size={20} /></button>
         </div>
       </div>
+
       <div className="flex-1 overflow-hidden">
+        {/* YouTube */}
         {type === 'youtube' && youtubeId && (
           <div className="w-full h-full flex items-center justify-center p-6">
             <div className="w-full max-w-5xl" style={{ aspectRatio: '16/9' }}>
@@ -92,12 +124,34 @@ function PreviewModal({ item, onClose }: { item: any; onClose: () => void }) {
             </div>
           </div>
         )}
-        {type === 'pdf' && mediaUrl && (
-          <iframe src={mediaUrl} className="w-full h-full" title={item.title} />
+
+        {/* Loading / Error states for blob types */}
+        {needsBlob && loading && (
+          <div className="w-full h-full flex items-center justify-center text-slate-300 text-sm gap-2">
+            <div className="w-5 h-5 border-2 border-slate-500 border-t-white rounded-full animate-spin" />
+            Ładowanie...
+          </div>
         )}
-        {type === 'image' && mediaUrl && (
+        {needsBlob && error && (
+          <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 gap-4">
+            <FileText size={48} className="opacity-30" />
+            <p className="text-sm">Nie można załadować pliku.</p>
+            <a href={mediaUrl} target="_blank" rel="noopener noreferrer" download
+              className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm hover:bg-emerald-700 flex items-center gap-2">
+              <Upload size={14} className="rotate-180" /> Pobierz plik
+            </a>
+          </div>
+        )}
+
+        {/* PDF via blob URL (bypasses X-Frame-Options) */}
+        {type === 'pdf' && blobUrl && (
+          <iframe src={blobUrl} className="w-full h-full" title={item.title} />
+        )}
+
+        {/* Image via blob URL */}
+        {type === 'image' && blobUrl && (
           <div className="w-full h-full flex items-center justify-center p-6 overflow-auto">
-            <img src={mediaUrl} alt={item.title}
+            <img src={blobUrl} alt={item.title}
               className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
               style={{ maxHeight: 'calc(100vh - 120px)' }} />
           </div>
