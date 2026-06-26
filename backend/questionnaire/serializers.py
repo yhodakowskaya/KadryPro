@@ -73,8 +73,9 @@ class PublicFormSerializer(serializers.ModelSerializer):
 
 class SubmissionSerializer(serializers.ModelSerializer):
     invitation_data = QuestionnaireInvitationSerializer(source='invitation', read_only=True)
+    fields_schema = serializers.JSONField(source='invitation.template.fields_schema', read_only=True)
 
     class Meta:
         model = QuestionnaireSubmission
-        fields = ['id', 'invitation', 'invitation_data', 'data', 'submitted_at', 'ip_address']
+        fields = ['id', 'invitation', 'invitation_data', 'fields_schema', 'data', 'submitted_at', 'ip_address']
         read_only_fields = ['submitted_at', 'ip_address']

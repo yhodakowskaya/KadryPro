@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { createUser, getDepartments, getUsers, getPositions, getCustomRoles } from '../../api/users'
+import { createUser, getDepartments, getUsers, getPositions, getCustomRoles, getCompanies, getRegions } from '../../api/users'
 import { PageHeader, Card, Btn, FormField, Input, Select, ErrorMessage } from '../../components/ui'
 import { ArrowLeft, Save } from 'lucide-react'
 
@@ -11,6 +11,7 @@ export default function NowyPracownikPage() {
   const [form, setForm] = useState({
     username: '', first_name: '', last_name: '', email: '', password: '',
     role: 'employee', custom_role: '', department: '', manager: '', position: '', phone: '', hire_date: '',
+    company: '', region: '',
     contract_type: '', contract_start: '', contract_end: '',
     medical_exam_type: '', medical_exam_next_date: '',
     bhp_date: '', bhp_next_date: '',
@@ -21,6 +22,8 @@ export default function NowyPracownikPage() {
   const { data: usersData } = useQuery({ queryKey: ['users'], queryFn: () => getUsers({ is_active: 'true' }) })
   const { data: positionsData } = useQuery({ queryKey: ['positions'], queryFn: () => getPositions(true) })
   const { data: customRolesData } = useQuery({ queryKey: ['custom-roles'], queryFn: getCustomRoles })
+  const { data: companiesData } = useQuery({ queryKey: ['companies'], queryFn: getCompanies })
+  const { data: regionsData } = useQuery({ queryKey: ['regions'], queryFn: getRegions })
 
   const mutation = useMutation({
     mutationFn: createUser,
@@ -46,6 +49,8 @@ export default function NowyPracownikPage() {
       department: form.department ? Number(form.department) : null,
       manager: form.manager ? Number(form.manager) : null,
       custom_role: form.custom_role ? Number(form.custom_role) : null,
+      company: form.company ? Number(form.company) : null,
+      region: form.region ? Number(form.region) : null,
       hire_date: form.hire_date || null,
       contract_start: form.contract_start || null,
       contract_end: form.contract_end || null,
@@ -60,6 +65,8 @@ export default function NowyPracownikPage() {
   const userList = usersData?.results || usersData || []
   const positionsList = positionsData?.results || positionsData || []
   const customRoles = customRolesData?.results || customRolesData || []
+  const companies = companiesData?.results || companiesData || []
+  const regions = regionsData?.results || regionsData || []
 
   return (
     <div className="p-6 max-w-2xl">
@@ -136,6 +143,20 @@ export default function NowyPracownikPage() {
               ))}
             </Select>
           </FormField>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Firma">
+              <Select value={form.company} onChange={set('company')}>
+                <option value="">— Brak —</option>
+                {companies.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </Select>
+            </FormField>
+            <FormField label="Region">
+              <Select value={form.region} onChange={set('region')}>
+                <option value="">— Brak —</option>
+                {regions.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </Select>
+            </FormField>
+          </div>
           <FormField label="Data zatrudnienia">
             <Input type="date" value={form.hire_date} onChange={set('hire_date')} />
           </FormField>
