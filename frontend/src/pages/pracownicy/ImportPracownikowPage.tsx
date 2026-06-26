@@ -58,7 +58,7 @@ export default function ImportPracownikowPage() {
   const importMut = useMutation({
     mutationFn: () => confirmImport(file!, mapping, defaultPassword, defaultRole),
     onSuccess: (data) => { setResult(data); setStep('result') },
-    onError: () => setError('Błąd podczas importu.'),
+    onError: (err: any) => setError(err?.response?.data?.detail || 'Błąd podczas importu.'),
   })
 
   const handleFile = (f: File) => {

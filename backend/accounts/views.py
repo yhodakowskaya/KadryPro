@@ -504,9 +504,11 @@ class UserImportConfirmView(APIView):
 
     def post(self, request):
         import openpyxl
+        import json
         from datetime import datetime
         file = request.FILES.get('file')
-        mapping = request.data.get('mapping', {})  # { col_index: field_name }
+        mapping_raw = request.data.get('mapping', '{}')
+        mapping = json.loads(mapping_raw) if isinstance(mapping_raw, str) else mapping_raw
         default_password = request.data.get('default_password', 'Pracownik1234!')
         default_role = request.data.get('default_role', 'employee')
 
