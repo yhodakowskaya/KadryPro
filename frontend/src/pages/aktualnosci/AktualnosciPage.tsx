@@ -2,14 +2,14 @@ import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getNewsPosts, createNewsPost, updateNewsPost, deleteNewsPost,
-  toggleLike, getComments, addComment, deleteComment,
+  toggleLike, toggleDislike, getComments, addComment, deleteComment,
 } from '../../api/news'
 import { getDepartments, getUsers } from '../../api/users'
 import { useAuthStore, isHROrAdmin } from '../../stores/authStore'
 import { PageHeader, Card, Btn, ErrorMessage } from '../../components/ui'
 import {
   Plus, Pencil, Trash2, X, ImageIcon, Send, Link2,
-  Heart, MessageSquare, ChevronDown, ChevronUp, Paperclip, Bold, Italic, List,
+  ThumbsUp, ThumbsDown, MessageSquare, ChevronDown, ChevronUp, Paperclip, Bold, Italic, List,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { pl } from 'date-fns/locale'
@@ -163,10 +163,25 @@ function PostCard({ post, isHR, currentUser, onEdit, onDelete }: {
     count: post.likes_count ?? 0,
     liked: post.liked_by_me ?? false,
   })
+  const [dislikes, setDislikes] = useState<{ count: number; disliked: boolean }>({
+    count: post.dislikes_count ?? 0,
+    disliked: post.disliked_by_me ?? false,
+  })
 
   const likeMut = useMutation({
     mutationFn: () => toggleLike(post.id),
-    onSuccess: (data: any) => setLikes({ count: data.likes_count, liked: data.liked }),
+    onSuccess: (data: any) => {
+      setLikes({ count: data.likes_count, liked: data.liked })
+      setDislikes(d => ({ ...d, disliked: data.disliked }))
+    },
+  })
+
+  const dislikeMut = useMutation({
+    mutationFn: () => toggleDislike(post.id),
+    onSuccess: (data: any) => {
+      setDislikes({ count: data.dislikes_count, disliked: data.disliked })
+      setLikes(l => ({ ...l, liked: data.liked }))
+    },
   })
 
   const initials = post.author_name
@@ -192,7 +207,7 @@ function PostCard({ post, isHR, currentUser, onEdit, onDelete }: {
             <button onClick={copyLink} title="Kopiuj link do posta" className="p-1.5 text-gray-400 hover:text-green-700 rounded">
               <Link2 size={15} />
             </button>
-            {isHR && (
+            {(isHR || post.author === currentUser?.id) && (
               <>
                 <button onClick={() => onEdit(post)} className="p-1.5 text-gray-400 hover:text-blue-600 rounded">
                   <Pencil size={15} />
@@ -243,10 +258,17 @@ function PostCard({ post, isHR, currentUser, onEdit, onDelete }: {
           <div className="ml-auto flex items-center gap-3">
             <button
               onClick={() => likeMut.mutate()}
-              className={`flex items-center gap-1 text-sm transition-colors ${likes.liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
+              className={`flex items-center gap-1 text-sm transition-colors ${likes.liked ? 'text-green-600 font-semibold' : 'text-gray-400 hover:text-green-500'}`}
             >
-              <Heart size={15} fill={likes.liked ? 'currentColor' : 'none'} />
+              <ThumbsUp size={15} />
               {likes.count > 0 && <span>{likes.count}</span>}
+            </button>
+            <button
+              onClick={() => dislikeMut.mutate()}
+              className={`flex items-center gap-1 text-sm transition-colors ${dislikes.disliked ? 'text-red-500 font-semibold' : 'text-gray-400 hover:text-red-400'}`}
+            >
+              <ThumbsDown size={15} />
+              {dislikes.count > 0 && <span>{dislikes.count}</span>}
             </button>
           </div>
         </div>
@@ -496,7 +518,7 @@ export default function AktualnosciPage() {
         title="Aktualności"
         subtitle="Informacje i ogłoszenia dla pracowników"
         actions={
-          hrAdmin && !showForm && !editPost ? (
+          !showForm && !editPost ? (
             <Btn onClick={() => setShowForm(true)}><Plus size={16} /> Nowy post</Btn>
           ) : undefined
         }
@@ -527,7 +549,7 @@ export default function AktualnosciPage() {
         {!isLoading && posts.length === 0 && !showForm && (
           <Card className="p-12 text-center text-gray-400">
             <p className="mb-2">Brak aktualności.</p>
-            {hrAdmin && <Btn onClick={() => setShowForm(true)}><Plus size={16} /> Dodaj pierwszy post</Btn>}
+            <Btn onClick={() => setShowForm(true)}><Plus size={16} /> Dodaj pierwszy post</Btn>
           </Card>
         )}
 

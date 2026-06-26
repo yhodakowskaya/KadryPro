@@ -15,6 +15,9 @@ export const deleteNewsPost = (id: number) =>
 export const toggleLike = (postId: number) =>
   api.post(`/news/${postId}/like/`).then(r => r.data)
 
+export const toggleDislike = (postId: number) =>
+  api.post(`/news/${postId}/dislike/`).then(r => r.data)
+
 export const getComments = (postId: number) =>
   api.get(`/news/${postId}/comments/`).then(r => r.data)
 
