@@ -204,7 +204,10 @@ export default function KartaPracownikaPage() {
     },
   })
   const addContractMutation = useMutation({
-    mutationFn: (data: any) => createContract(Number(id), data),
+    mutationFn: (data: any) => createContract(Number(id), {
+      ...data,
+      end_date: data.end_date || null,
+    }),
     onSuccess: () => { refetchContracts(); setNewContractForm(null) },
   })
   const deleteContractMutation = useMutation({

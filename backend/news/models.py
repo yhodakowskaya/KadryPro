@@ -52,6 +52,17 @@ class PostLike(models.Model):
         unique_together = [('post', 'user')]
 
 
+class PostDislike(models.Model):
+    post = models.ForeignKey(NewsPost, on_delete=models.CASCADE, related_name='dislikes')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='post_dislikes'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('post', 'user')]
+
+
 class PostComment(models.Model):
     post = models.ForeignKey(NewsPost, on_delete=models.CASCADE, related_name='comments')
     author = models.ForeignKey(
@@ -63,3 +74,25 @@ class PostComment(models.Model):
 
     class Meta:
         ordering = ['created_at']
+
+
+class CommentLike(models.Model):
+    comment = models.ForeignKey(PostComment, on_delete=models.CASCADE, related_name='likes')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='comment_likes'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('comment', 'user')]
+
+
+class CommentDislike(models.Model):
+    comment = models.ForeignKey(PostComment, on_delete=models.CASCADE, related_name='dislikes')
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='comment_dislikes'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [('comment', 'user')]

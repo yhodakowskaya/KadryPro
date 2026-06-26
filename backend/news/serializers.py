@@ -1,19 +1,42 @@
 from rest_framework import serializers
-from .models import NewsPost, PostComment
+from .models import NewsPost, PostComment, PostDislike, CommentLike, CommentDislike
 
 
 class PostCommentSerializer(serializers.ModelSerializer):
     author_name = serializers.SerializerMethodField()
+    likes_count = serializers.SerializerMethodField()
+    liked_by_me = serializers.SerializerMethodField()
+    dislikes_count = serializers.SerializerMethodField()
+    disliked_by_me = serializers.SerializerMethodField()
 
     class Meta:
         model = PostComment
-        fields = ['id', 'author', 'author_name', 'text', 'created_at']
+        fields = ['id', 'author', 'author_name', 'text', 'created_at',
+                  'likes_count', 'liked_by_me', 'dislikes_count', 'disliked_by_me']
         read_only_fields = ['author', 'created_at']
 
     def get_author_name(self, obj):
         if obj.author:
             return obj.author.get_full_name() or obj.author.username
         return 'Nieznany'
+
+    def get_likes_count(self, obj):
+        return obj.likes.count()
+
+    def get_liked_by_me(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.likes.filter(user=request.user).exists()
+        return False
+
+    def get_dislikes_count(self, obj):
+        return obj.dislikes.count()
+
+    def get_disliked_by_me(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.dislikes.filter(user=request.user).exists()
+        return False
 
 
 class NewsPostSerializer(serializers.ModelSerializer):
@@ -23,6 +46,8 @@ class NewsPostSerializer(serializers.ModelSerializer):
     attachment_url = serializers.SerializerMethodField()
     likes_count = serializers.SerializerMethodField()
     liked_by_me = serializers.SerializerMethodField()
+    dislikes_count = serializers.SerializerMethodField()
+    disliked_by_me = serializers.SerializerMethodField()
     comments_count = serializers.SerializerMethodField()
 
     class Meta:
@@ -32,8 +57,8 @@ class NewsPostSerializer(serializers.ModelSerializer):
             'attachment', 'attachment_url', 'attachment_name',
             'author', 'author_name', 'author_role',
             'is_published', 'visibility', 'visible_to_depts', 'visible_to_users',
-            'likes_count', 'liked_by_me', 'comments_count',
-            'created_at', 'updated_at',
+            'likes_count', 'liked_by_me', 'dislikes_count', 'disliked_by_me',
+            'comments_count', 'created_at', 'updated_at',
         ]
         read_only_fields = ['author', 'created_at', 'updated_at']
 
@@ -67,6 +92,15 @@ class NewsPostSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return obj.likes.filter(user=request.user).exists()
+        return False
+
+    def get_dislikes_count(self, obj):
+        return obj.dislikes.count()
+
+    def get_disliked_by_me(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.dislikes.filter(user=request.user).exists()
         return False
 
     def get_comments_count(self, obj):

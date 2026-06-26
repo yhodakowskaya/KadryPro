@@ -26,3 +26,9 @@ export const addComment = (postId: number, text: string) =>
 
 export const deleteComment = (postId: number, commentId: number) =>
   api.delete(`/news/${postId}/comments/${commentId}/`)
+
+export const toggleCommentLike = (postId: number, commentId: number) =>
+  api.post(`/news/${postId}/comments/${commentId}/like/`).then(r => r.data)
+
+export const toggleCommentDislike = (postId: number, commentId: number) =>
+  api.post(`/news/${postId}/comments/${commentId}/dislike/`).then(r => r.data)

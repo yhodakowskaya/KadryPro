@@ -3,13 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getNewsPosts, createNewsPost, updateNewsPost, deleteNewsPost,
   toggleLike, toggleDislike, getComments, addComment, deleteComment,
+  toggleCommentLike, toggleCommentDislike,
 } from '../../api/news'
 import { getDepartments, getUsers } from '../../api/users'
 import { useAuthStore, isHROrAdmin } from '../../stores/authStore'
 import { PageHeader, Card, Btn, ErrorMessage } from '../../components/ui'
 import {
   Plus, Pencil, Trash2, X, ImageIcon, Send, Link2,
-  ThumbsUp, ThumbsDown, MessageSquare, ChevronDown, ChevronUp, Paperclip, Bold, Italic, List,
+  Heart, ThumbsDown, MessageSquare, ChevronDown, ChevronUp, Paperclip, Bold, Italic, List,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { pl } from 'date-fns/locale'
@@ -64,6 +65,66 @@ function MdToolbar({ taRef, value, onChange }: {
   )
 }
 
+// --- Comment item with like/dislike ---
+function CommentItem({ comment, postId, currentUser, onDelete }: {
+  comment: any; postId: number; currentUser: any; onDelete: () => void
+}) {
+  const [likes, setLikes] = useState({ count: comment.likes_count ?? 0, liked: comment.liked_by_me ?? false })
+  const [dislikes, setDislikes] = useState({ count: comment.dislikes_count ?? 0, disliked: comment.disliked_by_me ?? false })
+  const hrAdmin = isHROrAdmin(currentUser)
+
+  const likeMut = useMutation({
+    mutationFn: () => toggleCommentLike(postId, comment.id),
+    onSuccess: (data: any) => {
+      setLikes({ count: data.likes_count, liked: data.liked })
+      setDislikes({ count: data.dislikes_count, disliked: data.disliked })
+    },
+  })
+
+  const dislikeMut = useMutation({
+    mutationFn: () => toggleCommentDislike(postId, comment.id),
+    onSuccess: (data: any) => {
+      setDislikes({ count: data.dislikes_count, disliked: data.disliked })
+      setLikes({ count: data.likes_count, liked: data.liked })
+    },
+  })
+
+  return (
+    <div className="flex gap-2 group">
+      <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
+        {comment.author_name?.slice(0, 2) || '?'}
+      </div>
+      <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-xs font-semibold text-gray-800">{comment.author_name || 'Nieznany'}</span>
+          <span className="text-xs text-gray-400">{format(new Date(comment.created_at), 'd MMM, HH:mm', { locale: pl })}</span>
+        </div>
+        <p className="text-sm text-gray-700 mt-0.5">{comment.text}</p>
+        <div className="flex items-center gap-3 mt-1.5">
+          <button onClick={() => likeMut.mutate()}
+            className={`flex items-center gap-0.5 text-xs transition-colors ${likes.liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}>
+            <Heart size={11} fill={likes.liked ? 'currentColor' : 'none'} />
+            {likes.count > 0 && <span>{likes.count}</span>}
+          </button>
+          <button onClick={() => dislikeMut.mutate()}
+            className={`flex items-center gap-0.5 text-xs transition-colors ${dislikes.disliked ? 'text-blue-500 font-semibold' : 'text-gray-400 hover:text-blue-400'}`}>
+            <ThumbsDown size={11} />
+            {dislikes.count > 0 && <span>{dislikes.count}</span>}
+          </button>
+        </div>
+      </div>
+      {(hrAdmin || comment.author === currentUser?.id) && (
+        <button
+          onClick={onDelete}
+          className="opacity-0 group-hover:opacity-100 p-1 text-gray-300 hover:text-red-500 transition-opacity flex-shrink-0 self-start mt-1"
+        >
+          <Trash2 size={12} />
+        </button>
+      )}
+    </div>
+  )
+}
+
 // --- Comments section ---
 function CommentsSection({ postId, commentsCount, currentUser }: {
   postId: number; commentsCount: number; currentUser: any
@@ -94,8 +155,6 @@ function CommentsSection({ postId, commentsCount, currentUser }: {
     if (text.trim()) addMut.mutate(text.trim())
   }
 
-  const hrAdmin = isHROrAdmin(currentUser)
-
   return (
     <div className="mt-3 pt-3 border-t border-gray-100">
       <button
@@ -110,26 +169,13 @@ function CommentsSection({ postId, commentsCount, currentUser }: {
       {open && (
         <div className="mt-3 space-y-3">
           {comments.map((c: any) => (
-            <div key={c.id} className="flex gap-2 group">
-              <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600 flex-shrink-0">
-                {c.author_name?.slice(0, 2) || '?'}
-              </div>
-              <div className="flex-1 bg-gray-50 rounded-lg px-3 py-2">
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-xs font-semibold text-gray-800">{c.author_name || 'Nieznany'}</span>
-                  <span className="text-xs text-gray-400">{format(new Date(c.created_at), 'd MMM, HH:mm', { locale: pl })}</span>
-                </div>
-                <p className="text-sm text-gray-700 mt-0.5">{c.text}</p>
-              </div>
-              {(hrAdmin || c.author === currentUser?.id) && (
-                <button
-                  onClick={() => delMut.mutate(c.id)}
-                  className="opacity-0 group-hover:opacity-100 p-1 text-gray-300 hover:text-red-500 transition-opacity flex-shrink-0"
-                >
-                  <Trash2 size={12} />
-                </button>
-              )}
-            </div>
+            <CommentItem
+              key={c.id}
+              comment={c}
+              postId={postId}
+              currentUser={currentUser}
+              onDelete={() => delMut.mutate(c.id)}
+            />
           ))}
 
           <form onSubmit={handleSend} className="flex gap-2">
@@ -172,7 +218,7 @@ function PostCard({ post, isHR, currentUser, onEdit, onDelete }: {
     mutationFn: () => toggleLike(post.id),
     onSuccess: (data: any) => {
       setLikes({ count: data.likes_count, liked: data.liked })
-      setDislikes(d => ({ ...d, disliked: data.disliked }))
+      setDislikes({ count: data.dislikes_count, disliked: data.disliked })
     },
   })
 
@@ -180,7 +226,7 @@ function PostCard({ post, isHR, currentUser, onEdit, onDelete }: {
     mutationFn: () => toggleDislike(post.id),
     onSuccess: (data: any) => {
       setDislikes({ count: data.dislikes_count, disliked: data.disliked })
-      setLikes(l => ({ ...l, liked: data.liked }))
+      setLikes({ count: data.likes_count, liked: data.liked })
     },
   })
 
@@ -258,9 +304,9 @@ function PostCard({ post, isHR, currentUser, onEdit, onDelete }: {
           <div className="ml-auto flex items-center gap-3">
             <button
               onClick={() => likeMut.mutate()}
-              className={`flex items-center gap-1 text-sm transition-colors ${likes.liked ? 'text-green-600 font-semibold' : 'text-gray-400 hover:text-green-500'}`}
+              className={`flex items-center gap-1 text-sm transition-colors ${likes.liked ? 'text-red-500' : 'text-gray-400 hover:text-red-400'}`}
             >
-              <ThumbsUp size={15} />
+              <Heart size={15} fill={likes.liked ? 'currentColor' : 'none'} />
               {likes.count > 0 && <span>{likes.count}</span>}
             </button>
             <button

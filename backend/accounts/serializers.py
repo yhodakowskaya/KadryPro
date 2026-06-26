@@ -27,6 +27,7 @@ class RegionSerializer(serializers.ModelSerializer):
 
 class ContractSerializer(serializers.ModelSerializer):
     contract_type_display = serializers.CharField(source='get_contract_type_display', read_only=True)
+    end_date = serializers.DateField(required=False, allow_null=True)
 
     class Meta:
         model = Contract
