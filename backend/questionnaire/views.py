@@ -176,16 +176,89 @@ class SubmitFormView(APIView):
         invitation.save(update_fields=['status'])
 
         if invitation.sent_by and invitation.sent_by.email:
-            send_mail(
-                subject=f'Kwestionariusz wypełniony — {invitation.recipient_name}',
-                message=(
-                    f'{invitation.recipient_name} wypełnił/a kwestionariusz osobowy.\n\n'
-                    f'Zaloguj się do systemu, aby zobaczyć dane i wygenerować PDF.'
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[invitation.sent_by.email],
-                fail_silently=True,
+            fields_schema = invitation.template.fields_schema or []
+            answers = submission.data or {}
+            system_url = getattr(settings, 'APP_URL', '')
+            submission_url = f"{system_url}/kwestionariusze/wypelnione/{submission.pk}" if system_url else ''
+
+            # plain text body
+            lines = [
+                f'{invitation.recipient_name} wypełnił/a kwestionariusz: {invitation.template.name}',
+                f'Data: {submission.submitted_at.strftime("%d.%m.%Y %H:%M")}',
+                '',
+                '─' * 60,
+                '',
+            ]
+            for field in fields_schema:
+                if field.get('type') == 'section':
+                    lines.append(f'\n[{field.get("label", "")}]')
+                    continue
+                label = field.get('label', field.get('key', ''))
+                key = field.get('key', '')
+                value = answers.get(key)
+                if isinstance(value, list):
+                    value = ', '.join(value)
+                lines.append(f'{label}: {value or "—"}')
+            if submission_url:
+                lines += ['', '─' * 60, '', f'Link do PDF: {submission_url}']
+            plain_body = '\n'.join(lines)
+
+            # html body
+            rows_html = ''
+            for field in fields_schema:
+                if field.get('type') == 'section':
+                    rows_html += (
+                        f'<tr><td colspan="2" style="background:#f3f4f6;padding:10px 14px;'
+                        f'font-weight:600;font-size:13px;color:#374151;border-top:2px solid #e5e7eb">'
+                        f'{field.get("label","")}</td></tr>'
+                    )
+                    continue
+                label = field.get('label', field.get('key', ''))
+                key = field.get('key', '')
+                value = answers.get(key)
+                if isinstance(value, list):
+                    value = ', '.join(value)
+                rows_html += (
+                    f'<tr><td style="padding:8px 14px;color:#6b7280;font-size:13px;'
+                    f'border-bottom:1px solid #f3f4f6;white-space:nowrap;vertical-align:top">'
+                    f'{label}</td>'
+                    f'<td style="padding:8px 14px;color:#111827;font-size:13px;'
+                    f'border-bottom:1px solid #f3f4f6;font-weight:500">'
+                    f'{value or "—"}</td></tr>'
+                )
+            pdf_link = (
+                f'<p style="margin-top:20px"><a href="{submission_url}" '
+                f'style="background:#166534;color:#fff;padding:10px 20px;border-radius:6px;'
+                f'text-decoration:none;font-size:14px">Otwórz w systemie i pobierz PDF</a></p>'
+                if submission_url else ''
             )
+            html_body = f"""
+<html><body style="font-family:Arial,sans-serif;color:#111827;max-width:700px;margin:0 auto">
+<h2 style="color:#166534;border-bottom:2px solid #166534;padding-bottom:8px">
+  Nowy kwestionariusz: {invitation.template.name}
+</h2>
+<p style="color:#6b7280;margin-bottom:16px">
+  <strong>{invitation.recipient_name}</strong> &bull;
+  {submission.submitted_at.strftime("%d.%m.%Y %H:%M")}
+</p>
+<table style="width:100%;border-collapse:collapse;border:1px solid #e5e7eb;border-radius:8px">
+{rows_html}
+</table>
+{pdf_link}
+</body></html>"""
+
+            try:
+                from django.core.mail import EmailMultiAlternatives
+                msg = EmailMultiAlternatives(
+                    subject=f'Kwestionariusz wypełniony — {invitation.recipient_name}',
+                    body=plain_body,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=[invitation.sent_by.email],
+                )
+                msg.attach_alternative(html_body, 'text/html')
+                msg.send(fail_silently=True)
+            except Exception:
+                pass
 
         return Response({'detail': 'Dziękujemy za wypełnienie kwestionariusza!'})
 
