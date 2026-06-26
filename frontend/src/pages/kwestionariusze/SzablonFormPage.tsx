@@ -43,6 +43,8 @@ export default function SzablonFormPage() {
   const [type, setType] = useState('custom')
   const [fields, setFields] = useState<Field[]>([])
   const [error, setError] = useState('')
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [dragOverId, setDragOverId] = useState<string | null>(null)
 
   const { data: template, isLoading } = useQuery({
     queryKey: ['template', id],
@@ -75,6 +77,19 @@ export default function SzablonFormPage() {
     ;[next[i], next[i + dir]] = [next[i + dir], next[i]]
     return next
   })
+
+  const reorderField = (fromId: string, toId: string) => {
+    if (fromId === toId) return
+    setFields(fs => {
+      const from = fs.findIndex(f => f.id === fromId)
+      const to = fs.findIndex(f => f.id === toId)
+      if (from === -1 || to === -1) return fs
+      const next = [...fs]
+      const [item] = next.splice(from, 1)
+      next.splice(to, 0, item)
+      return next
+    })
+  }
 
   const handleSave = () => {
     setError('')
@@ -119,9 +134,17 @@ export default function SzablonFormPage() {
 
           <div className="space-y-3 mb-4">
             {fields.map((f, i) => (
-              <div key={f.id} className={`border rounded-lg p-4 ${f.type === 'section' ? 'bg-gray-50 border-gray-300' : 'border-gray-200'}`}>
+              <div
+                key={f.id}
+                draggable
+                onDragStart={() => setDraggingId(f.id)}
+                onDragEnd={() => { setDraggingId(null); setDragOverId(null) }}
+                onDragOver={e => { e.preventDefault(); setDragOverId(f.id) }}
+                onDrop={e => { e.preventDefault(); if (draggingId) reorderField(draggingId, f.id) }}
+                className={`border rounded-lg p-4 transition-opacity ${f.type === 'section' ? 'bg-gray-50 border-gray-300' : 'border-gray-200'} ${draggingId === f.id ? 'opacity-40' : ''} ${dragOverId === f.id && draggingId !== f.id ? 'border-green-500 bg-green-50' : ''}`}
+              >
                 <div className="flex items-center gap-2 mb-3">
-                  <GripVertical size={16} className="text-gray-300 flex-shrink-0" />
+                  <GripVertical size={16} className="text-gray-400 flex-shrink-0 cursor-grab active:cursor-grabbing" />
                   <Select
                     className="w-48"
                     value={f.type}
