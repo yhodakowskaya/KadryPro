@@ -23,5 +23,10 @@ export const createItem = (formData: FormData | any, isFile: boolean) =>
     headers: isFile ? { 'Content-Type': 'multipart/form-data' } : {}
   }).then(r => r.data)
 
+export const updateItem = (id: number, formData: FormData | any, isFile: boolean) =>
+  api.patch(`/knowledge/items/${id}/`, isFile ? formData : formData, {
+    headers: isFile ? { 'Content-Type': 'multipart/form-data' } : {}
+  }).then(r => r.data)
+
 export const deleteItem = (id: number) =>
   api.delete(`/knowledge/items/${id}/`)

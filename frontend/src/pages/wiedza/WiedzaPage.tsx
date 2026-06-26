@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getFolders, createFolder, updateFolder, deleteFolder, getItems, createItem, deleteItem } from '../../api/knowledge'
+import { getFolders, createFolder, updateFolder, deleteFolder, getItems, createItem, updateItem, deleteItem } from '../../api/knowledge'
 import { getDepartments, getUsers } from '../../api/users'
 import { PageHeader, Card, Btn, FormField, Input, Select, LoadingPage, ErrorMessage } from '../../components/ui'
-import { Folder, FolderOpen, File, Link2, Plus, Trash2, ChevronRight, Home, Upload, ExternalLink, Lock, Settings, X, Users, Building2 } from 'lucide-react'
+import { Folder, FolderOpen, File, Link2, Plus, Trash2, ChevronRight, Home, Upload, ExternalLink, Lock, Settings, X, Users, Building2, Edit } from 'lucide-react'
 import { useAuthStore, isHROrAdmin } from '../../stores/authStore'
 
 const ACCESS_OPTS = [
@@ -44,6 +44,11 @@ export default function WiedzaPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [itemError, setItemError] = useState('')
   const [folderError, setFolderError] = useState('')
+  const [editingItem, setEditingItem] = useState<any>(null)
+  const [editItemForm, setEditItemForm] = useState({ title: '', url: '', access: 'all', description: '' })
+  const [editItemFile, setEditItemFile] = useState<File | null>(null)
+  const editFileInputRef = useRef<HTMLInputElement>(null)
+  const [editItemError, setEditItemError] = useState('')
 
   const { data: foldersData, isLoading: loadingFolders } = useQuery({
     queryKey: ['knowledge-folders', currentFolderId],
@@ -122,6 +127,19 @@ export default function WiedzaPage() {
   const deleteItemMut = useMutation({
     mutationFn: deleteItem,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['knowledge-items'] }),
+  })
+
+  const updateItemMut = useMutation({
+    mutationFn: ({ id, fd, isFile }: { id: number; fd: any; isFile: boolean }) => updateItem(id, fd, isFile),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['knowledge-items'] })
+      setEditingItem(null)
+      setEditItemFile(null)
+      setEditItemError('')
+    },
+    onError: (err: any) => setEditItemError(
+      err?.response?.data ? Object.values(err.response.data).flat().join(', ') : 'Błąd zapisu.'
+    ),
   })
 
   const openCreateFolder = () => {
@@ -413,39 +431,112 @@ export default function WiedzaPage() {
             </Card>
           )}
           {items.map((item: any) => (
-            <Card key={item.id} className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-100">
-                  {item.item_type === 'link' ? <Link2 size={16} className="text-emerald-600" /> : <File size={16} className="text-slate-500" />}
+            <div key={item.id}>
+              <Card className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-slate-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-100">
+                    {item.item_type === 'link' ? <Link2 size={16} className="text-emerald-600" /> : <File size={16} className="text-slate-500" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-900">{item.title}</p>
+                    {item.description && <p className="text-xs text-slate-400">{item.description}</p>}
+                    {item.item_type === 'link' && item.url && (
+                      <p className="text-xs text-slate-400 truncate">{item.url}</p>
+                    )}
+                    {item.access !== 'all' && (
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${ACCESS_BADGE[item.access]}`}>
+                        {ACCESS_OPTS.find(o => o.value === item.access)?.label}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    {item.item_type === 'link' && item.url && (
+                      <a href={item.url} target="_blank" rel="noopener noreferrer">
+                        <Btn size="sm" variant="secondary"><ExternalLink size={13} /> Otwórz</Btn>
+                      </a>
+                    )}
+                    {item.item_type === 'file' && item.file_url && (
+                      <a href={item.file_url} target="_blank" rel="noopener noreferrer" download>
+                        <Btn size="sm" variant="secondary"><Upload size={13} className="rotate-180" /> Pobierz</Btn>
+                      </a>
+                    )}
+                    {hrAdmin && (
+                      <>
+                        <Btn size="sm" variant="secondary" onClick={() => {
+                          setEditingItem(item)
+                          setEditItemForm({ title: item.title, url: item.url || '', access: item.access, description: item.description || '' })
+                          setEditItemFile(null)
+                          setEditItemError('')
+                        }}>
+                          <Edit size={13} /> Edytuj
+                        </Btn>
+                        <Btn size="sm" variant="ghost" onClick={() => { if (confirm(`Usunąć "${item.title}"?`)) deleteItemMut.mutate(item.id) }}>
+                          <Trash2 size={13} className="text-red-400" />
+                        </Btn>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900">{item.title}</p>
-                  {item.description && <p className="text-xs text-slate-400">{item.description}</p>}
-                  {item.access !== 'all' && (
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${ACCESS_BADGE[item.access]}`}>
-                      {ACCESS_OPTS.find(o => o.value === item.access)?.label}
-                    </span>
-                  )}
-                </div>
-                <div className="flex gap-2 flex-shrink-0">
-                  {item.item_type === 'link' && item.url && (
-                    <a href={item.url} target="_blank" rel="noopener noreferrer">
-                      <Btn size="sm" variant="secondary"><ExternalLink size={13} /> Otwórz</Btn>
-                    </a>
-                  )}
-                  {item.item_type === 'file' && item.file_url && (
-                    <a href={item.file_url} target="_blank" rel="noopener noreferrer" download>
-                      <Btn size="sm" variant="secondary"><Upload size={13} className="rotate-180" /> Pobierz</Btn>
-                    </a>
-                  )}
-                  {hrAdmin && (
-                    <Btn size="sm" variant="ghost" onClick={() => { if (confirm(`Usunąć "${item.title}"?`)) deleteItemMut.mutate(item.id) }}>
-                      <Trash2 size={13} className="text-red-400" />
+              </Card>
+
+              {/* Inline edit form */}
+              {editingItem?.id === item.id && (
+                <div className="border border-emerald-200 rounded-lg p-4 mt-1 bg-emerald-50/40">
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField label="Tytuł">
+                      <Input value={editItemForm.title}
+                        onChange={e => setEditItemForm(f => ({ ...f, title: e.target.value }))}
+                        placeholder="Tytuł zasobu" />
+                    </FormField>
+                    <FormField label="Dostęp">
+                      <Select value={editItemForm.access}
+                        onChange={e => setEditItemForm(f => ({ ...f, access: e.target.value }))}>
+                        {ACCESS_OPTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                      </Select>
+                    </FormField>
+                    {item.item_type === 'link' ? (
+                      <FormField label="URL">
+                        <Input type="url" value={editItemForm.url}
+                          onChange={e => setEditItemForm(f => ({ ...f, url: e.target.value }))}
+                          placeholder="https://..." />
+                      </FormField>
+                    ) : (
+                      <FormField label="Zastąp plik (opcjonalnie)">
+                        <input
+                          ref={editFileInputRef}
+                          type="file"
+                          onChange={e => setEditItemFile(e.target.files?.[0] || null)}
+                          className="block w-full text-sm text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                        />
+                      </FormField>
+                    )}
+                    <FormField label="Opis">
+                      <Input value={editItemForm.description}
+                        onChange={e => setEditItemForm(f => ({ ...f, description: e.target.value }))}
+                        placeholder="Opcjonalnie" />
+                    </FormField>
+                  </div>
+                  {editItemError && <div className="mt-2"><ErrorMessage message={editItemError} /></div>}
+                  <div className="flex gap-2 mt-3">
+                    <Btn size="sm" disabled={updateItemMut.isPending} onClick={() => {
+                      if (item.item_type === 'file' && editItemFile) {
+                        const fd = new FormData()
+                        fd.append('title', editItemForm.title || editItemFile.name)
+                        fd.append('access', editItemForm.access)
+                        fd.append('description', editItemForm.description)
+                        fd.append('file', editItemFile)
+                        updateItemMut.mutate({ id: item.id, fd, isFile: true })
+                      } else {
+                        updateItemMut.mutate({ id: item.id, fd: editItemForm, isFile: false })
+                      }
+                    }}>
+                      {updateItemMut.isPending ? 'Zapisuję...' : 'Zapisz'}
                     </Btn>
-                  )}
+                    <Btn size="sm" variant="secondary" onClick={() => setEditingItem(null)}>Anuluj</Btn>
+                  </div>
                 </div>
-              </div>
-            </Card>
+              )}
+            </div>
           ))}
         </div>
       )}
