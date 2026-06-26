@@ -3,6 +3,9 @@ import api from './client'
 export const getFolders = (parent?: string | null) =>
   api.get('/knowledge/folders/', { params: { parent: parent ?? 'null' } }).then(r => r.data)
 
+export const getAllFolders = () =>
+  api.get('/knowledge/folders/', { params: { all: 'true' } }).then(r => r.data)
+
 export const getFolder = (id: number) =>
   api.get(`/knowledge/folders/${id}/`).then(r => r.data)
 

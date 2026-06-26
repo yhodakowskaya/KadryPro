@@ -21,8 +21,11 @@ class KnowledgeFolderListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         user = self.request.user
         parent = self.request.query_params.get('parent')
+        all_folders = self.request.query_params.get('all')
         qs = KnowledgeFolder.objects.all()
-        if parent == 'null' or parent == '':
+        if all_folders == 'true':
+            pass  # return all, no parent filter
+        elif parent == 'null' or parent == '':
             qs = qs.filter(parent=None)
         elif parent:
             qs = qs.filter(parent_id=parent)
