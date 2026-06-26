@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getUser, updateUser, deleteUser, getDepartments, getUsers, setPassword, getCompanies, getRegions, getContracts, createContract, deleteContract } from '../../api/users'
+import { getUser, updateUser, patchUser, deleteUser, getDepartments, getUsers, setPassword, getCompanies, getRegions, getContracts, createContract, deleteContract } from '../../api/users'
 import { getPositions, getCustomRoles } from '../../api/users'
 import { getVacationBalance, updateVacationBalance, getVacationRequests, getVacationTypeAllocations, adjustVacationBalance } from '../../api/hr'
 import { useState } from 'react'
@@ -131,6 +131,9 @@ export default function KartaPracownikaPage() {
   const [adjustField, setAdjustField] = useState<'vacation' | 'remote'>('vacation')
   const [contractsOpen, setContractsOpen] = useState(false)
   const [newContractForm, setNewContractForm] = useState<any>(null)
+  const [contractEditMode, setContractEditMode] = useState(false)
+  const [contractForm, setContractForm] = useState<any>(null)
+  const [nextContractForm, setNextContractForm] = useState<any>(null)
 
   const { data: employee, isLoading } = useQuery({
     queryKey: ['user', id],
@@ -207,6 +210,36 @@ export default function KartaPracownikaPage() {
   const deleteContractMutation = useMutation({
     mutationFn: (cid: number) => deleteContract(Number(id), cid),
     onSuccess: () => refetchContracts(),
+  })
+  const patchContractFieldsMutation = useMutation({
+    mutationFn: (data: any) => patchUser(Number(id), data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['user', id] }); setContractEditMode(false) },
+    onError: () => setError('Błąd zapisu umowy.'),
+  })
+  const addNextContractMutation = useMutation({
+    mutationFn: async (newData: any) => {
+      if (employee?.contract_type) {
+        await createContract(Number(id), {
+          contract_type: employee.contract_type,
+          start_date: employee.contract_start || new Date().toISOString().slice(0, 10),
+          end_date: employee.contract_end || null,
+          position: employee.position || '',
+          notes: '',
+        })
+      }
+      return patchUser(Number(id), {
+        contract_type: newData.contract_type || null,
+        contract_start: newData.contract_start || null,
+        contract_end: newData.contract_end || null,
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', id] })
+      refetchContracts()
+      setContractsOpen(true)
+      setNextContractForm(null)
+    },
+    onError: () => setError('Błąd podczas dodawania umowy.'),
   })
 
   if (isLoading) return <LoadingPage />
@@ -410,10 +443,113 @@ export default function KartaPracownikaPage() {
 
           {/* Umowa */}
           <Card className="p-6">
-            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <FileText size={18} className="text-indigo-600" /> Umowa
-            </h2>
-            {!editMode ? (
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                <FileText size={18} className="text-indigo-600" /> Umowa
+              </h2>
+              {!editMode && hrAdmin && !contractEditMode && !nextContractForm && (
+                <div className="flex gap-2">
+                  <Btn size="sm" variant="secondary" onClick={() => {
+                    setContractForm({
+                      contract_type: employee.contract_type || '',
+                      contract_start: employee.contract_start || '',
+                      contract_end: employee.contract_end || '',
+                    })
+                    setContractEditMode(true)
+                  }}>
+                    <Edit size={13} /> Edytuj
+                  </Btn>
+                  <Btn size="sm" variant="secondary" onClick={() =>
+                    setNextContractForm({ contract_type: '', contract_start: '', contract_end: '' })
+                  }>
+                    <Plus size={13} /> Dodaj następną umowę
+                  </Btn>
+                </div>
+              )}
+            </div>
+
+            {editMode ? (
+              <div className="grid grid-cols-2 gap-4">
+                <FormField label="Typ umowy">
+                  <Select value={editForm.contract_type} onChange={set('contract_type')}>
+                    <option value="">— Nie dotyczy —</option>
+                    {Object.entries(CONTRACT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </Select>
+                </FormField>
+                <div />
+                <FormField label="Umowa od">
+                  <Input type="date" value={editForm.contract_start} onChange={set('contract_start')} />
+                </FormField>
+                <FormField label="Umowa do">
+                  <Input type="date" value={editForm.contract_end} onChange={set('contract_end')} />
+                </FormField>
+              </div>
+            ) : contractEditMode && contractForm ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="Typ umowy">
+                    <Select value={contractForm.contract_type}
+                      onChange={e => setContractForm((f: any) => ({ ...f, contract_type: e.target.value }))}>
+                      <option value="">— Nie dotyczy —</option>
+                      {Object.entries(CONTRACT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </Select>
+                  </FormField>
+                  <div />
+                  <FormField label="Umowa od">
+                    <Input type="date" value={contractForm.contract_start}
+                      onChange={e => setContractForm((f: any) => ({ ...f, contract_start: e.target.value }))} />
+                  </FormField>
+                  <FormField label="Umowa do">
+                    <Input type="date" value={contractForm.contract_end}
+                      onChange={e => setContractForm((f: any) => ({ ...f, contract_end: e.target.value }))} />
+                  </FormField>
+                </div>
+                <div className="flex gap-2">
+                  <Btn size="sm" onClick={() => patchContractFieldsMutation.mutate({
+                    contract_type: contractForm.contract_type || null,
+                    contract_start: contractForm.contract_start || null,
+                    contract_end: contractForm.contract_end || null,
+                  })} disabled={patchContractFieldsMutation.isPending}>
+                    <Save size={13} /> Zapisz
+                  </Btn>
+                  <Btn size="sm" variant="secondary" onClick={() => setContractEditMode(false)}>Anuluj</Btn>
+                </div>
+              </div>
+            ) : nextContractForm ? (
+              <div className="space-y-4">
+                {employee.contract_type && (
+                  <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-sm text-blue-700">
+                    Aktualna umowa ({employee.contract_type_display || employee.contract_type}) zostanie przeniesiona do historii.
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField label="Typ umowy" required>
+                    <Select value={nextContractForm.contract_type}
+                      onChange={e => setNextContractForm((f: any) => ({ ...f, contract_type: e.target.value }))}>
+                      <option value="">— Wybierz —</option>
+                      {Object.entries(CONTRACT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </Select>
+                  </FormField>
+                  <div />
+                  <FormField label="Umowa od" required>
+                    <Input type="date" value={nextContractForm.contract_start}
+                      onChange={e => setNextContractForm((f: any) => ({ ...f, contract_start: e.target.value }))} />
+                  </FormField>
+                  <FormField label="Umowa do">
+                    <Input type="date" value={nextContractForm.contract_end}
+                      onChange={e => setNextContractForm((f: any) => ({ ...f, contract_end: e.target.value }))} />
+                  </FormField>
+                </div>
+                <div className="flex gap-2">
+                  <Btn size="sm"
+                    disabled={!nextContractForm.contract_type || !nextContractForm.contract_start || addNextContractMutation.isPending}
+                    onClick={() => addNextContractMutation.mutate(nextContractForm)}>
+                    <Save size={13} /> {addNextContractMutation.isPending ? 'Zapisuję...' : 'Zapisz nową umowę'}
+                  </Btn>
+                  <Btn size="sm" variant="secondary" onClick={() => setNextContractForm(null)}>Anuluj</Btn>
+                </div>
+              </div>
+            ) : (
               <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                 {[
                   ['Typ umowy', employee.contract_type_display || employee.contract_type || '—'],
@@ -434,22 +570,6 @@ export default function KartaPracownikaPage() {
                   }
                   return null
                 })()}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                <FormField label="Typ umowy">
-                  <Select value={editForm.contract_type} onChange={set('contract_type')}>
-                    <option value="">— Nie dotyczy —</option>
-                    {Object.entries(CONTRACT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                  </Select>
-                </FormField>
-                <div />
-                <FormField label="Umowa od">
-                  <Input type="date" value={editForm.contract_start} onChange={set('contract_start')} />
-                </FormField>
-                <FormField label="Umowa do">
-                  <Input type="date" value={editForm.contract_end} onChange={set('contract_end')} />
-                </FormField>
               </div>
             )}
           </Card>
