@@ -155,6 +155,7 @@ export default function KartaPracownikaPage() {
       bhp_next_date: employee.bhp_next_date || '',
       company: employee.company || '',
       region: employee.region || '',
+      extra_managers: (employee.extra_managers || []).map(String),
     })
     setEditMode(true)
   }
@@ -175,6 +176,7 @@ export default function KartaPracownikaPage() {
       termination_date: editForm.termination_date || null,
       company: editForm.company ? Number(editForm.company) : null,
       region: editForm.region ? Number(editForm.region) : null,
+      extra_managers: (editForm.extra_managers || []).map(Number),
     })
   }
 
@@ -229,7 +231,7 @@ export default function KartaPracownikaPage() {
                   ['Email', employee.email],
                   ['Telefon', employee.phone || '—'],
                   ['Dział', employee.department_name || '—'],
-                  ['Przełożony', employee.manager_name || '—'],
+                  ['Przełożony', [employee.manager_name, ...(employee.extra_managers_names || [])].filter(Boolean).join(', ') || '—'],
                   ['Data zatrudnienia', employee.hire_date ? format(new Date(employee.hire_date), 'dd MMMM yyyy', { locale: pl }) : '—'],
                   ['Data zwolnienia', employee.termination_date ? format(new Date(employee.termination_date), 'dd MMMM yyyy', { locale: pl }) : '—'],
                   ['Status', <Badge color={employee.is_active ? 'green' : 'gray'}>{employee.is_active ? 'Aktywny' : 'Nieaktywny'}</Badge>],
@@ -278,7 +280,7 @@ export default function KartaPracownikaPage() {
                     {deptList.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </Select>
                 </FormField>
-                <FormField label="Przełożony">
+                <FormField label="Przełożony (główny)">
                   <Select value={editForm.manager} onChange={set('manager')}>
                     <option value="">-- Brak --</option>
                     {userList.filter((u: any) => u.id !== Number(id)).map((u: any) => (
@@ -286,6 +288,32 @@ export default function KartaPracownikaPage() {
                     ))}
                   </Select>
                 </FormField>
+                <div className="col-span-2">
+                  <p className="text-sm font-medium text-gray-700 mb-1">Dodatkowi przełożeni</p>
+                  <div className="border border-gray-200 rounded-lg p-2 max-h-36 overflow-y-auto grid grid-cols-2 gap-1">
+                    {userList.filter((u: any) => u.id !== Number(id)).map((u: any) => {
+                      const sid = String(u.id)
+                      const checked = (editForm.extra_managers || []).includes(sid)
+                      return (
+                        <label key={u.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 px-1 py-0.5 rounded">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              const list: string[] = editForm.extra_managers || []
+                              setEditForm((f: any) => ({
+                                ...f,
+                                extra_managers: checked ? list.filter((x: string) => x !== sid) : [...list, sid],
+                              }))
+                            }}
+                            className="w-3.5 h-3.5"
+                          />
+                          {u.first_name} {u.last_name}
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
                 <FormField label="Data zatrudnienia">
                   <Input type="date" value={editForm.hire_date} onChange={set('hire_date')} />
                 </FormField>

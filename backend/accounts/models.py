@@ -137,6 +137,10 @@ class User(AbstractUser):
         'self', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='substituting_for', verbose_name='Zastępca przełożonego'
     )
+    extra_managers = models.ManyToManyField(
+        'self', symmetrical=False, blank=True,
+        related_name='extra_subordinates', verbose_name='Dodatkowi przełożeni'
+    )
     phone = models.CharField(max_length=30, blank=True, verbose_name='Telefon')
     position = models.CharField(max_length=200, blank=True, verbose_name='Stanowisko')
     hire_date = models.DateField(null=True, blank=True, verbose_name='Data zatrudnienia')

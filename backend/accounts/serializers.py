@@ -119,6 +119,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
     medical_exam_type_display = serializers.CharField(source='get_medical_exam_type_display', read_only=True)
     company_name = serializers.CharField(source='company.name', read_only=True)
     region_name = serializers.CharField(source='region.name', read_only=True)
+    extra_managers = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    extra_managers_names = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -128,11 +130,15 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'department', 'department_name',
             'company', 'company_name', 'region', 'region_name',
             'manager', 'manager_name', 'substitute_manager', 'substitute_manager_name',
+            'extra_managers', 'extra_managers_names',
             'position', 'phone', 'hire_date', 'is_active', 'termination_date', 'date_joined',
             'contract_type', 'contract_type_display', 'contract_start', 'contract_end',
             'medical_exam_type', 'medical_exam_type_display', 'medical_exam_next_date',
             'bhp_date', 'bhp_next_date',
         ]
+
+    def get_extra_managers_names(self, obj):
+        return [m.get_full_name() or m.username for m in obj.extra_managers.all()]
 
     def get_manager_name(self, obj):
         if obj.manager:
@@ -169,17 +175,29 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
+    extra_managers = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=User.objects.all(), required=False
+    )
+
     class Meta:
         model = User
         fields = [
             'first_name', 'last_name', 'email',
             'role', 'custom_role', 'department', 'manager', 'substitute_manager',
+            'extra_managers',
             'company', 'region',
             'position', 'phone', 'hire_date', 'is_active', 'termination_date',
             'contract_type', 'contract_start', 'contract_end',
             'medical_exam_type', 'medical_exam_next_date',
             'bhp_date', 'bhp_next_date',
         ]
+
+    def update(self, instance, validated_data):
+        extra = validated_data.pop('extra_managers', None)
+        instance = super().update(instance, validated_data)
+        if extra is not None:
+            instance.extra_managers.set(extra)
+        return instance
 
 
 class SetPasswordSerializer(serializers.Serializer):
