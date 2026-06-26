@@ -6,7 +6,7 @@ import { PageHeader, Btn, FormField, Input, Select, LoadingPage, ErrorMessage } 
 import {
   Folder, FolderOpen, File, Link2, Plus, Trash2, Home,
   Upload, ExternalLink, Lock, Settings, X, Users, Building2,
-  Edit, Play, FileText, Maximize2, ChevronRight, ChevronDown,
+  Edit, Play, FileText, Maximize2, ChevronRight, ChevronDown, Image,
 } from 'lucide-react'
 import { useAuthStore, isHROrAdmin } from '../../stores/authStore'
 
@@ -45,11 +45,14 @@ function getYouTubeId(url: string): string | null {
   return null
 }
 
-function getPreviewType(item: any): 'youtube' | 'pdf' | 'none' {
+const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico']
+
+function getPreviewType(item: any): 'youtube' | 'pdf' | 'image' | 'none' {
   if (item.item_type === 'link' && item.url && getYouTubeId(item.url)) return 'youtube'
   const ext = (item.file_extension || '').toLowerCase()
-  const urlLower = (item.url || '').toLowerCase()
-  if (ext === 'pdf' || urlLower.includes('.pdf')) return 'pdf'
+  const urlExt = (item.url || '').split('?')[0].split('.').pop()?.toLowerCase() || ''
+  if (ext === 'pdf' || urlExt === 'pdf') return 'pdf'
+  if (IMAGE_EXTS.includes(ext) || IMAGE_EXTS.includes(urlExt)) return 'image'
   return 'none'
 }
 
@@ -58,19 +61,20 @@ function getPreviewType(item: any): 'youtube' | 'pdf' | 'none' {
 function PreviewModal({ item, onClose }: { item: any; onClose: () => void }) {
   const type = getPreviewType(item)
   const youtubeId = type === 'youtube' ? getYouTubeId(item.url) : null
-  const pdfUrl = type === 'pdf' ? (item.file_url || item.url) : null
+  const mediaUrl = item.file_url || item.url
+
+  const iconMap = { youtube: <Play size={16} className="text-red-400 flex-shrink-0" />, pdf: <FileText size={16} className="text-slate-300 flex-shrink-0" />, image: <Image size={16} className="text-blue-300 flex-shrink-0" />, none: null }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.85)' }}>
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.88)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div className="flex items-center justify-between px-5 py-3 bg-slate-900 text-white flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
-          {type === 'youtube'
-            ? <Play size={16} className="text-red-400 flex-shrink-0" />
-            : <FileText size={16} className="text-slate-300 flex-shrink-0" />}
+          {iconMap[type]}
           <span className="text-sm font-medium truncate">{item.title}</span>
         </div>
         <div className="flex items-center gap-3 flex-shrink-0 ml-4">
-          <a href={item.file_url || item.url} target="_blank" rel="noopener noreferrer"
+          <a href={mediaUrl} target="_blank" rel="noopener noreferrer"
             className="text-slate-300 hover:text-white text-xs flex items-center gap-1">
             <Maximize2 size={14} /> Otwórz w nowej karcie
           </a>
@@ -88,8 +92,15 @@ function PreviewModal({ item, onClose }: { item: any; onClose: () => void }) {
             </div>
           </div>
         )}
-        {type === 'pdf' && pdfUrl && (
-          <iframe src={pdfUrl} className="w-full h-full" title={item.title} />
+        {type === 'pdf' && mediaUrl && (
+          <iframe src={mediaUrl} className="w-full h-full" title={item.title} />
+        )}
+        {type === 'image' && mediaUrl && (
+          <div className="w-full h-full flex items-center justify-center p-6 overflow-auto">
+            <img src={mediaUrl} alt={item.title}
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+              style={{ maxHeight: 'calc(100vh - 120px)' }} />
+          </div>
         )}
       </div>
     </div>
@@ -566,6 +577,11 @@ export default function WiedzaPage() {
                           if (pt === 'pdf') return (
                             <Btn size="sm" variant="secondary" onClick={() => setPreviewItem(item)}>
                               <FileText size={13} className="text-indigo-500" /> Podgląd PDF
+                            </Btn>
+                          )
+                          if (pt === 'image') return (
+                            <Btn size="sm" variant="secondary" onClick={() => setPreviewItem(item)}>
+                              <Image size={13} className="text-blue-500" /> Podgląd
                             </Btn>
                           )
                           if (item.item_type === 'link' && item.url) return (
