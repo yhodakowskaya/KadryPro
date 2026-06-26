@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getFolders, createFolder, updateFolder, deleteFolder, getItems, createItem, updateItem, deleteItem } from '../../api/knowledge'
 import { getDepartments, getUsers } from '../../api/users'
 import { PageHeader, Card, Btn, FormField, Input, Select, LoadingPage, ErrorMessage } from '../../components/ui'
-import { Folder, FolderOpen, File, Link2, Plus, Trash2, ChevronRight, Home, Upload, ExternalLink, Lock, Settings, X, Users, Building2, Edit } from 'lucide-react'
+import { Folder, FolderOpen, File, Link2, Plus, Trash2, ChevronRight, Home, Upload, ExternalLink, Lock, Settings, X, Users, Building2, Edit, Play, FileText, Maximize2 } from 'lucide-react'
 import { useAuthStore, isHROrAdmin } from '../../stores/authStore'
 
 const ACCESS_OPTS = [
@@ -27,6 +27,85 @@ type FolderForm = {
 
 const emptyFolderForm = (): FolderForm => ({ name: '', access: 'all', allowed_departments: [], allowed_users: [] })
 
+function getYouTubeId(url: string): string | null {
+  try {
+    const u = new URL(url)
+    if (u.hostname.includes('youtube.com')) return u.searchParams.get('v')
+    if (u.hostname === 'youtu.be') return u.pathname.slice(1).split('?')[0]
+  } catch { /* empty */ }
+  return null
+}
+
+function isPdf(item: any): boolean {
+  if (item.item_type === 'file') {
+    return (item.file_extension || '').toLowerCase() === 'pdf'
+  }
+  if (item.item_type === 'link' && item.url) {
+    return item.url.toLowerCase().includes('.pdf')
+  }
+  return false
+}
+
+function getPreviewType(item: any): 'youtube' | 'pdf' | 'none' {
+  if (item.item_type === 'link' && item.url && getYouTubeId(item.url)) return 'youtube'
+  if (isPdf(item)) return 'pdf'
+  return 'none'
+}
+
+function PreviewModal({ item, onClose }: { item: any; onClose: () => void }) {
+  const type = getPreviewType(item)
+  const youtubeId = type === 'youtube' ? getYouTubeId(item.url) : null
+  const pdfUrl = type === 'pdf' ? (item.file_url || item.url) : null
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.85)' }}>
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3 bg-slate-900 text-white flex-shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          {type === 'youtube' ? <Play size={16} className="text-red-400 flex-shrink-0" /> : <FileText size={16} className="text-slate-300 flex-shrink-0" />}
+          <span className="text-sm font-medium truncate">{item.title}</span>
+        </div>
+        <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+          <a
+            href={item.file_url || item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-slate-300 hover:text-white text-xs flex items-center gap-1"
+          >
+            <Maximize2 size={14} /> Otwórz w nowej karcie
+          </a>
+          <button onClick={onClose} className="text-slate-300 hover:text-white p-1 rounded">
+            <X size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-hidden">
+        {type === 'youtube' && youtubeId && (
+          <div className="w-full h-full flex items-center justify-center p-6">
+            <div className="w-full max-w-5xl" style={{ aspectRatio: '16/9' }}>
+              <iframe
+                src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1`}
+                className="w-full h-full rounded-lg"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          </div>
+        )}
+        {type === 'pdf' && pdfUrl && (
+          <iframe
+            src={pdfUrl}
+            className="w-full h-full"
+            title={item.title}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function WiedzaPage() {
   const { user } = useAuthStore()
   const hrAdmin = isHROrAdmin(user)
@@ -45,6 +124,7 @@ export default function WiedzaPage() {
   const [itemError, setItemError] = useState('')
   const [folderError, setFolderError] = useState('')
   const [editingItem, setEditingItem] = useState<any>(null)
+  const [previewItem, setPreviewItem] = useState<any>(null)
   const [editItemForm, setEditItemForm] = useState({ title: '', url: '', access: 'all', description: '' })
   const [editItemFile, setEditItemFile] = useState<File | null>(null)
   const editFileInputRef = useRef<HTMLInputElement>(null)
@@ -450,16 +530,30 @@ export default function WiedzaPage() {
                     )}
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
-                    {item.item_type === 'link' && item.url && (
-                      <a href={item.url} target="_blank" rel="noopener noreferrer">
-                        <Btn size="sm" variant="secondary"><ExternalLink size={13} /> Otwórz</Btn>
-                      </a>
-                    )}
-                    {item.item_type === 'file' && item.file_url && (
-                      <a href={item.file_url} target="_blank" rel="noopener noreferrer" download>
-                        <Btn size="sm" variant="secondary"><Upload size={13} className="rotate-180" /> Pobierz</Btn>
-                      </a>
-                    )}
+                    {(() => {
+                      const pt = getPreviewType(item)
+                      if (pt === 'youtube') return (
+                        <Btn size="sm" variant="secondary" onClick={() => setPreviewItem(item)}>
+                          <Play size={13} className="text-red-500" /> Odtwórz
+                        </Btn>
+                      )
+                      if (pt === 'pdf') return (
+                        <Btn size="sm" variant="secondary" onClick={() => setPreviewItem(item)}>
+                          <FileText size={13} className="text-indigo-500" /> Podgląd PDF
+                        </Btn>
+                      )
+                      if (item.item_type === 'link' && item.url) return (
+                        <a href={item.url} target="_blank" rel="noopener noreferrer">
+                          <Btn size="sm" variant="secondary"><ExternalLink size={13} /> Otwórz</Btn>
+                        </a>
+                      )
+                      if (item.item_type === 'file' && item.file_url) return (
+                        <a href={item.file_url} target="_blank" rel="noopener noreferrer" download>
+                          <Btn size="sm" variant="secondary"><Upload size={13} className="rotate-180" /> Pobierz</Btn>
+                        </a>
+                      )
+                      return null
+                    })()}
                     {hrAdmin && (
                       <>
                         <Btn size="sm" variant="secondary" onClick={() => {
@@ -547,6 +641,8 @@ export default function WiedzaPage() {
           <p>Baza wiedzy jest pusta. {hrAdmin && 'Utwórz pierwszy folder.'}</p>
         </Card>
       )}
+
+      {previewItem && <PreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />}
     </div>
   )
 }
